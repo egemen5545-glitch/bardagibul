@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<title>Bardağı Bul</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Lilita+One&family=Nunito:wght@600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="./style.css">
+</head>
+<body>
+
+<!-- ======== TOP BAR ======== -->
+<div id="topbar">
+  <button id="btn-quit" title="Ana menü">✕</button>
+  <div style="display:flex;gap:8px">
+    <div class="pill" id="lives-pill"></div>
+    <div class="pill">🪙 <span id="coins-label">0</span></div>
+  </div>
+</div>
+
+<!-- ======== MENU ======== -->
+<div class="screen active" id="screen-menu">
+  <h1 class="logo">BARDAĞI<span>BUL 🥤</span></h1>
+  <p class="tagline">Topu takip et, doğru bardağı seç!</p>
+  <div class="best-badges">
+    <div class="pill">🪙 <span id="menu-coins">0</span></div>
+    <div class="pill">🏅 En iyi seviye: <span id="best-level">–</span></div>
+    <div class="pill">♾️ Sonsuz rekoru: <span id="best-endless">–</span></div>
+  </div>
+  <button class="btn" id="btn-classic">▶️ Oyna (Klasik)</button>
+  <button class="btn secondary" id="btn-endless">♾️ Sonsuz Mod</button>
+  <button class="btn secondary" id="btn-shop">🎨 Market</button>
+</div>
+
+<!-- ======== GAME ======== -->
+<div class="screen" id="screen-game">
+  <div id="level-info"></div>
+  <div id="status-msg"></div>
+  <div id="table-wrap"><div id="table"><div id="ball"></div></div></div>
+  <div id="hint-row">
+    <button class="btn small secondary" id="btn-hint">💡 İpucu (30 🪙)</button>
+  </div>
+</div>
+
+<!-- ======== SHOP ======== -->
+<div class="screen" id="screen-shop">
+  <h1 class="logo" style="font-size:38px">MARKET</h1>
+  <div class="tabs">
+    <button class="tab active" data-tab="cup">🥤 Bardaklar</button>
+    <button class="tab" data-tab="ball">⚪ Toplar</button>
+  </div>
+  <div id="shop-grid"></div>
+  <button class="btn small secondary" id="btn-shop-back" style="margin-top:10px">← Geri</button>
+</div>
+
+<!-- ======== GAME OVER MODAL ======== -->
+<div class="modal-back" id="modal-gameover">
+  <div class="modal">
+    <div class="big-emoji">💔</div>
+    <h2>Oyun Bitti!</h2>
+    <p id="gameover-stats"></p>
+    <button class="btn small" id="btn-ad-revive">📺 Reklam izle: +1 Can</button><br>
+    <button class="btn small secondary" id="btn-retry">🔄 Tekrar Oyna</button>
+    <button class="btn small secondary" id="btn-go-menu">🏠 Ana Menü</button>
+  </div>
+</div>
+
+<!-- ======== AD MODAL (simülasyon) ======== -->
+<div class="modal-back" id="modal-ad">
+  <div class="modal">
+    <div class="big-emoji">📺</div>
+    <h2>Reklam</h2>
+    <p>Reklam oynatılıyor…<br><span id="ad-count" style="font-size:34px;font-family:'Lilita One';color:var(--gold)">5</span></p>
+  </div>
+</div>
+
+<!-- ======== DAILY REWARD MODAL ======== -->
+<div class="modal-back" id="modal-daily">
+  <div class="modal">
+    <div class="big-emoji">🎁</div>
+    <h2>Günlük Ödül!</h2>
+    <p>Bugün ilk girişin — <b>100 🪙</b> hediye!</p>
+    <button class="btn small" id="btn-claim-daily">Ödülü Al</button>
+  </div>
+</div>
+
+<!-- ======== GENERIC MSG MODAL ======== -->
+<div class="modal-back" id="modal-msg">
+  <div class="modal">
+    <div class="big-emoji" id="msg-emoji">ℹ️</div>
+    <h2 id="msg-title"></h2>
+    <p id="msg-body"></p>
+    <button class="btn small" id="btn-msg-ok">Tamam</button>
+  </div>
+</div>
+
+<button id="mute-btn" title="Ses">🔊</button>
+
+<script src="./script.js"></script>
+</body>
+</html>
