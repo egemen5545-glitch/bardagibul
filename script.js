@@ -76,17 +76,19 @@ const ELIMINATE_REWARD = 15;
 const VAR_COST = 150;
 const AD_DURATION_SECONDS = 10;
 const REST_SECONDS = 3;
-const PAUSE_AD_COOLDOWN_MS = 60000;
 const AD_NOTICES_ENABLED = false; // Gerçek reklam eklenecek aşamaya kadar ekranda reklam bildirimi gösterme.
 const RUN_SAVE_KEY = 'bardagibul-active-run';
 const FORCE_REST_AFTER_CONSECUTIVE_LOSSES = 3;
 const LONG_PLAY_REST_AFTER_MS = 5 * 60 * 1000;
+const MOCK_MATCH_ROUNDS = 5;
+const MOCK_MATCH_ENTRY_FEE = 40;
+const MOCK_MATCH_REWARD = 75;
 
 /* ---------- Kalıcı kayıt (window.storage → localStorage → bellek) ---------- */
 const memStore = {};
 const store = {
   async get(k){
-    try{ if(window.storage){ const r = await window.storage.get(k); return r ? r.value : null; } }catch(e){ return null; }
+    try{ if(window.storage){ const r = await window.storage.get(k); return r ? r.value : null; } }catch(e){}
     try{ return window.localStorage.getItem(k); }catch(e){}
     return (k in memStore) ? memStore[k] : null;
   },
@@ -110,7 +112,8 @@ const S = {
   lastDaily:'', muted:false,
   musicOn:true, sfxOn:true,
   bestCombo:0, campaignCompleted:false, playerName:'', dailyStats:null,
-  starterCoinsGiven:false, weeklyLeague:null, weeklyBadge:''
+  starterCoinsGiven:false, weeklyLeague:null, weeklyBadge:'',
+  elo:1000, online:null
 };
 function uniqueList(arr){ return Array.from(new Set((Array.isArray(arr)?arr:[]).filter(Boolean))); }
 function selectedCupSkin(){ return CUP_SKINS.find(s=>s.id===S.cupSkin)||CUP_SKINS[0]; }
@@ -150,6 +153,17 @@ function useComboShieldIfReady(){
   }
   return false;
 }
+function ensureOnlineState(){
+  if(typeof S.elo!=='number' || !Number.isFinite(S.elo)) S.elo=1000;
+  S.elo=Math.max(500,Math.min(2500,Math.round(S.elo)));
+  if(!S.online || typeof S.online!=='object') S.online={};
+  if(!S.online.room) S.online.room=null;
+  if(!S.online.activeMatch) S.online.activeMatch=null;
+  if(!S.online.lastMatch) S.online.lastMatch=null;
+  if(!S.online.pendingMatch) S.online.pendingMatch=null;
+  if(!S.online.tournament) S.online.tournament=null;
+  return S.online;
+}
 function sanitizeState(){
   S.ownedCups = uniqueList(S.ownedCups);
   S.ownedBalls = uniqueList(S.ownedBalls);
@@ -159,6 +173,7 @@ function sanitizeState(){
   if(!BALL_SKINS.some(x=>x.id===S.ballSkin)) S.ballSkin='orange';
   if(!S.ownedCups.includes(S.cupSkin)) S.ownedCups.push(S.cupSkin);
   if(!S.ownedBalls.includes(S.ballSkin)) S.ownedBalls.push(S.ballSkin);
+  ensureOnlineState();
 }
 async function saveState(){ sanitizeState(); await store.set('bardagibul-save', JSON.stringify(S)); }
 async function loadState(){
@@ -177,6 +192,7 @@ async function loadState(){
   }
 }
 async function saveRunState(){
+  if(isCompetitiveMode()) return;
   if(currentScreenId!=='screen-game' || lives<=0 || level<1) return;
   const run={
     active:true,
@@ -207,7 +223,7 @@ async function loadRunState(){
 async function checkResumeOrDaily(){
   pendingResumeRun = await loadRunState();
   if(pendingResumeRun){
-    const name = S.playerName ? ', '+S.playerName : '';
+    const name = S.playerName ? ', '+escapeHtml(S.playerName) : '';
     $('resume-stats').innerHTML='Kaldığın yer bulundu'+name+'.<br>Bölüm: '+pendingResumeRun.level+(pendingResumeRun.mode==='classic'?'/'+MAX_CLASSIC_LEVEL:'')+'<br>Can: '+pendingResumeRun.lives+'/'+MAX_LIVES+' • Kombo: '+(pendingResumeRun.streak||0)+'x';
     modal('modal-resume',true);
   }else{
@@ -221,7 +237,6 @@ let appIsBackgrounded=false;
 let currentScreenId='screen-menu';
 let isPaused=false;
 let pendingResumeRun=null;
-let lastPauseAdAt=0;
 let pauseAdBusy=false;
 const activeOscillators=new Set();
 const activeMedia=new Set();
@@ -558,12 +573,12 @@ function levelSettings(lv){
     return {zone:'green', cupCount:capped>=17?5:4, swaps:13+Math.round(p*9), dur:520-p*55, feints:true, colors:false, invis:false, doubleFake:false, finalZone:false, feintChance:.13, colorChance:0, ghostChance:0, bobChance:.10};
   }
   if(capped<=30){
-    return {zone:'orange', cupCount:capped>=27?6:5, swaps:21+Math.round(p*10), dur:485-p*55, feints:true, colors:true, invis:false, doubleFake:capped>=28, finalZone:false, feintChance:.20, colorChance:.20, ghostChance:0, bobChance:.18};
+    return {zone:'orange', cupCount:capped>=27?6:5, swaps:23+Math.round(p*8), dur:485-p*55, feints:true, colors:true, invis:false, doubleFake:capped>=28, finalZone:false, feintChance:.20, colorChance:.20, ghostChance:0, bobChance:.18};
   }
   if(capped<=40){
-    return {zone:'purple', cupCount:capped>=37?7:6, swaps:28+Math.round(p*9), dur:440-p*45, feints:true, colors:true, invis:true, doubleFake:true, finalZone:false, feintChance:.22, colorChance:.28, ghostChance:.10, bobChance:.20};
+    return {zone:'purple', cupCount:capped>=37?7:6, swaps:32+Math.round(p*7), dur:425-p*35, feints:true, colors:true, invis:true, doubleFake:true, finalZone:false, feintChance:.22, colorChance:.27, ghostChance:.08, bobChance:.18};
   }
-  return {zone:'red', cupCount:capped>=47?8:7, swaps:33+Math.round(p*9), dur:405-p*42, feints:true, colors:true, invis:true, doubleFake:true, finalZone:true, feintChance:.24, colorChance:.20, ghostChance:.08, bobChance:.22};
+  return {zone:'red', cupCount:capped>=47?8:7, swaps:40+Math.round(p*5), dur:390-p*28, feints:true, colors:true, invis:true, doubleFake:true, finalZone:true, feintChance:.23, colorChance:.18, ghostChance:.07, bobChance:.20};
 }
 const rewardFor=lv=>BASE_REWARD;
 const comboBonusFor=combo=>combo>=2 ? Math.min(80, combo*5) : 0;
@@ -573,8 +588,8 @@ function choiceTimeFor(lv){
   if(capped<=10) return Math.round(9500-p*1200);
   if(capped<=20) return Math.round(8000-p*1100);
   if(capped<=30) return Math.round(7000-p*1000);
-  if(capped<=40) return Math.round(6100-p*900);
-  return Math.round(5400-p*800);
+  if(capped<=40) return Math.round(5900-p*800);
+  return Math.round(5050-p*650);
 }
 const shufflePauseFor=lv=>Math.max(36, 94 - Math.min(lv,MAX_CLASSIC_LEVEL)*1.05);
 
@@ -724,10 +739,403 @@ function renderWeeklyLeague(){
   const summary=$('league-summary');
   if(summary) summary.innerHTML='<div class="league-score-pill">Puan: <b>'+league.score+'</b></div><div class="league-score-pill">Sıra: <b>#'+rank+'</b></div>';
   board.innerHTML=rows.map((r,i)=>
-    '<div class="league-row '+(r.player?'player':'')+'"><span class="league-rank">#'+(i+1)+'</span><span class="league-avatar">'+r.badge+'</span><span class="league-name">'+escapeHtml(r.name)+'</span><span class="league-score">'+r.score+'</span></div>'
+    '<div class="league-row '+(r.player?'player':'')+'"><span class="league-rank">#'+(i+1)+'</span><span class="league-avatar">'+escapeHtml(r.badge)+'</span><span class="league-name">'+escapeHtml(r.name)+'</span><span class="league-score">'+r.score+'</span></div>'
   ).join('');
   const reward=$('league-reward');
   if(reward) reward.textContent=leagueRewardForRank(rank);
+}
+
+/* ---------- Local/mock online servisleri ---------- */
+const MOCK_RIVAL_NAMES=['Ada','Mert','Deniz','Ece','Kaan','Lina','Arda','Mina','Atlas','Zeynep','Bora','Nehir'];
+const MOCK_CHAT_REPLIES=['Hazırım!','Güzel hamle.','Bu tur bende.','Kod çalıştı, geldim.','Bol şans!','Son bardağa dikkat.'];
+const TOURNAMENT_TYPES={
+  mini:{id:'mini',name:'Mini Kupa',entry:100,prize:160,badge:'🥉'},
+  master:{id:'master',name:'Usta Kupa',entry:500,prize:850,badge:'🥈'},
+  legend:{id:'legend',name:'Efsane Kupa',entry:1500,prize:2700,badge:'🏆'}
+};
+let mockSearchTimer=null;
+function onlineName(){ return S.playerName || 'Sen'; }
+function mockOpponentName(seed=''){
+  const source=String(seed||Date.now());
+  const idx=source.split('').reduce((a,ch)=>a+ch.charCodeAt(0),0)%MOCK_RIVAL_NAMES.length;
+  return MOCK_RIVAL_NAMES[idx];
+}
+function roomCode(){
+  return 'TB-'+String(Math.floor(100000+Math.random()*900000));
+}
+function normalizeRoomCode(code){
+  return String(code||'').trim().toUpperCase().replace(/\s+/g,'');
+}
+function systemChat(text){ return {from:'system',name:'Sistem',text,at:Date.now()}; }
+function makeRoom(code,joined=false){
+  const rival=mockOpponentName(code);
+  const players=[{id:'me',name:onlineName(),ready:false,host:!joined,elo:S.elo}];
+  if(joined) players.push({id:'rival',name:rival,ready:true,host:false,elo:S.elo+20+rand(90)});
+  return {
+    code,
+    createdAt:Date.now(),
+    ready:false,
+    players,
+    chat:[systemChat(joined ? rival+' odaya katıldı.' : 'Oda oluşturuldu. Kodu arkadaşına gönder.')]
+  };
+}
+async function createRoomMock(){
+  ensureOnlineState();
+  S.online.room=makeRoom(roomCode(),false);
+  S.online.pendingMatch=null;
+  await saveState();
+  renderRoom();
+  showScreen('screen-room');
+}
+async function joinRoomMock(code){
+  const normalized=normalizeRoomCode(code);
+  if(!normalized){ msgModal('🔑','Kod gerekli','Odaya katılmak için davet kodunu yazmalısın.'); return null; }
+  ensureOnlineState();
+  S.online.room=makeRoom(normalized, true);
+  S.online.pendingMatch=null;
+  await saveState();
+  renderRoom();
+  showScreen('screen-room');
+  return S.online.room;
+}
+async function leaveRoomMock(){
+  ensureOnlineState();
+  S.online.room=null;
+  S.online.activeMatch=null;
+  S.online.pendingMatch=null;
+  await saveState();
+  showScreen('screen-friends');
+}
+function trimChat(room){
+  if(room && Array.isArray(room.chat) && room.chat.length>40) room.chat=room.chat.slice(-40);
+}
+async function sendChatMock(message){
+  ensureOnlineState();
+  const room=S.online.room;
+  const text=String(message||'').trim();
+  if(!room || !text) return;
+  room.chat.push({from:'me',name:onlineName(),text:text.slice(0,80),at:Date.now()});
+  trimChat(room);
+  await saveState();
+  renderRoomChat();
+  setTimeout(async ()=>{
+    if(!S.online || !S.online.room || S.online.room.code!==room.code) return;
+    const rival=(S.online.room.players||[]).find(p=>p.id==='rival') || {name:mockOpponentName(room.code)};
+    S.online.room.chat.push({from:'rival',name:rival.name,text:MOCK_CHAT_REPLIES[rand(MOCK_CHAT_REPLIES.length)],at:Date.now()});
+    trimChat(S.online.room);
+    await saveState();
+    if(currentScreenId==='screen-room') renderRoomChat();
+  },550+rand(700));
+}
+async function sendEmojiMock(emoji){
+  await sendChatMock(emoji);
+}
+function calculateMatchReward(kind='match'){
+  if(kind==='friend') return {entry:0,prize:40};
+  if(kind==='matchmaking') return {entry:MOCK_MATCH_ENTRY_FEE,prize:MOCK_MATCH_REWARD};
+  const cup=TOURNAMENT_TYPES[kind];
+  if(cup) return {entry:cup.entry,prize:cup.prize};
+  return {entry:0,prize:50};
+}
+function makeCompetitiveMatch(source,opponent,opts={}){
+  const reward=calculateMatchReward(source==='tournament' ? (opts.tournamentType||'mini') : source);
+  return {
+    id:'M'+Date.now(),
+    source,
+    status:'ready',
+    entryPaid:source==='friend' || source==='tournament',
+    entryFee:reward.entry,
+    prize:reward.prize,
+    targetRounds:opts.rounds||MOCK_MATCH_ROUNDS,
+    round:0,
+    opponent:{name:opponent.name,elo:opponent.elo||S.elo+rand(120)-40,correct:0,combo:0,lives:MAX_LIVES,score:0},
+    player:{name:onlineName(),elo:S.elo,correct:0,combo:0,lives:MAX_LIVES,score:0},
+    tournamentType:opts.tournamentType||'',
+    createdAt:Date.now()
+  };
+}
+async function startFriendMatchMock(){
+  ensureOnlineState();
+  let room=S.online.room;
+  if(!room){
+    room=makeRoom(roomCode(),true);
+    S.online.room=room;
+  }
+  if(!(room.players||[]).some(p=>p.id==='rival')){
+    room.players.push({id:'rival',name:mockOpponentName(room.code),ready:true,host:false,elo:S.elo+20+rand(80)});
+    room.chat.push(systemChat('Mock rakip odaya eklendi.'));
+  }
+  const rival=room.players.find(p=>p.id==='rival');
+  S.online.activeMatch=makeCompetitiveMatch('friend',rival);
+  await saveState();
+  renderRace();
+  showScreen('screen-race');
+}
+async function findMatchMock(){
+  ensureOnlineState();
+  if(mockSearchTimer) clearTimeout(mockSearchTimer);
+  const status=$('matchmaking-status');
+  const result=$('matchmaking-result');
+  const start=$('btn-start-found-match');
+  if(status){ status.classList.add('searching'); status.textContent='Uygun rakip aranıyor... ELO '+Math.max(500,S.elo-120)+' - '+(S.elo+120); }
+  if(result) result.innerHTML='';
+  if(start) start.style.display='none';
+  return new Promise(res=>{
+    mockSearchTimer=setTimeout(async ()=>{
+      const rival={name:mockOpponentName(S.elo+'match'),elo:S.elo-70+rand(141)};
+      S.online.pendingMatch=makeCompetitiveMatch('matchmaking',rival);
+      await saveState();
+      renderMatchmaking();
+      res(S.online.pendingMatch);
+    },3000);
+  });
+}
+async function startTournamentMock(type){
+  ensureOnlineState();
+  const cup=TOURNAMENT_TYPES[type];
+  if(!cup) return;
+  if(S.coins<cup.entry){ msgModal('🪙','Altın yetersiz','Bu kupaya katılmak için '+cup.entry+' altın gerekiyor.'); return; }
+  S.coins-=cup.entry;
+  const shuffled=MOCK_RIVAL_NAMES.slice().sort(()=>Math.random()-.5);
+  S.online.tournament={
+    type:cup.id,
+    status:'active',
+    roundIndex:0,
+    participants:[onlineName(),...shuffled.slice(0,7)],
+    route:[shuffled[0],shuffled[1],shuffled[2]],
+    history:[],
+    startedAt:Date.now()
+  };
+  S.online.activeMatch=null;
+  await saveState();
+  refreshMenu();
+  renderTournament();
+}
+async function submitLeaderboardMock(score){
+  addWeeklyLeagueScore(Math.max(0,Math.round((Number(score)||0)/40)));
+  await saveState();
+}
+async function updateEloMock(result){
+  const delta=result==='win'?15:-10;
+  S.elo=Math.max(500,Math.min(2500,Math.round((Number(S.elo)||1000)+delta)));
+  await saveState();
+  return S.elo;
+}
+function currentTournamentOpponent(){
+  const t=ensureOnlineState().tournament;
+  if(!t || t.status!=='active') return null;
+  return {name:t.route[t.roundIndex]||mockOpponentName(t.type+t.roundIndex),elo:S.elo+50+t.roundIndex*55};
+}
+async function prepareTournamentRound(){
+  const opp=currentTournamentOpponent();
+  const t=S.online.tournament;
+  if(!opp || !t) return;
+  S.online.activeMatch=makeCompetitiveMatch('tournament',opp,{rounds:3,tournamentType:t.type});
+  await saveState();
+  renderRace();
+  showScreen('screen-race');
+}
+function simulateOpponentRound(match,playerCorrect){
+  const eloGap=(match.opponent.elo||1000)-(S.elo||1000);
+  const chance=Math.max(.45,Math.min(.78,.62+eloGap/1000));
+  const correct=Math.random()<chance;
+  if(correct){
+    match.opponent.correct++;
+    match.opponent.combo++;
+    match.opponent.score+=105+Math.min(70,match.opponent.combo*9)+Math.max(0,match.opponent.lives)*4;
+  }else{
+    match.opponent.combo=0;
+    match.opponent.lives=Math.max(0,match.opponent.lives-1);
+    match.opponent.score+=14+rand(12);
+  }
+  if(!playerCorrect && Math.random()<.28) match.opponent.score+=12;
+}
+async function recordCompetitiveRound(playerCorrect){
+  ensureOnlineState();
+  const match=S.online.activeMatch;
+  if(!match || !['friend','matchmaking','tournament'].includes(match.source) || match.status!=='in_progress') return false;
+  match.round++;
+  match.player.name=onlineName();
+  match.player.lives=Math.max(0,lives);
+  if(playerCorrect){
+    match.player.correct++;
+    match.player.combo=streak;
+    match.player.score+=120+Math.min(90,streak*10)+Math.max(0,lives)*5;
+  }else{
+    match.player.combo=0;
+    match.player.score+=12+Math.max(0,lives)*2;
+  }
+  simulateOpponentRound(match,playerCorrect);
+  match.player.lives=Math.max(0,lives);
+  const finished=match.round>=match.targetRounds || lives<=0;
+  await saveState();
+  if(finished){
+    await finishCompetitiveMatch(lives<=0);
+    return true;
+  }
+  return false;
+}
+async function finishCompetitiveMatch(forceLoss=false){
+  ensureOnlineState();
+  const match=S.online.activeMatch;
+  if(!match) return;
+  match.status='complete';
+  const playerWon=!forceLoss && match.player.score>=match.opponent.score;
+  match.result=playerWon?'win':'loss';
+  let title=playerWon?'Kazandın!':'Kaybettin';
+  let body='Skor: '+match.player.score+' - '+match.opponent.score;
+  if(match.source==='matchmaking'){
+    if(playerWon){ S.coins+=match.prize; sndCoin(); }
+    await updateEloMock(playerWon?'win':'loss');
+    body+=' • Yeni ELO: '+S.elo+(playerWon?' • +'+match.prize+' 🪙':'');
+  }else if(match.source==='friend'){
+    if(playerWon){ S.coins+=match.prize; sndCoin(); body+=' • Dostluk ödülü: +'+match.prize+' 🪙'; }
+  }else if(match.source==='tournament'){
+    await applyTournamentResult(playerWon,match);
+    const t=S.online.tournament;
+    title=playerWon ? (t && t.status==='won' ? 'Kupayı Aldın!' : 'Üst Tura Çıktın!') : 'Elendin';
+    body = tournamentResultText(playerWon,match);
+  }
+  S.online.lastMatch=match;
+  await submitLeaderboardMock(match.player.score);
+  await saveState();
+  refreshMenu();
+  renderRace();
+  if(match.source==='tournament') renderTournament();
+  showScreen(match.source==='tournament' ? 'screen-tournament' : 'screen-race');
+  msgModal(playerWon?'🏆':'😬',title,body);
+}
+async function applyTournamentResult(playerWon,match){
+  const t=S.online.tournament; if(!t) return;
+  const cup=TOURNAMENT_TYPES[t.type]||TOURNAMENT_TYPES.mini;
+  t.history.push({round:t.roundIndex,result:playerWon?'win':'loss',score:match.player.score,opp:match.opponent.score});
+  if(!playerWon){ t.status='eliminated'; return; }
+  if(t.roundIndex>=2){
+    t.status='won';
+    S.coins+=cup.prize;
+    S.weeklyBadge=cup.badge;
+    sndCoin();
+  }else{
+    t.roundIndex++;
+  }
+}
+function tournamentResultText(playerWon,match){
+  const t=S.online.tournament;
+  const cup=t ? TOURNAMENT_TYPES[t.type] : null;
+  if(!playerWon) return 'Skor: '+match.player.score+' - '+match.opponent.score+'. Turnuvadan elendin.';
+  if(t && t.status==='won') return 'Final skoru: '+match.player.score+' - '+match.opponent.score+'. Ödül: +'+cup.prize+' 🪙';
+  return 'Skor: '+match.player.score+' - '+match.opponent.score+'. Sıradaki tur açıldı.';
+}
+async function beginCompetitiveGame(){
+  ensureOnlineState();
+  const match=S.online.pendingMatch || S.online.activeMatch;
+  if(!match){ msgModal('ℹ️','Maç yok','Önce oda, eşleşme veya turnuva maçı hazırla.'); return; }
+  if(match.status==='complete'){ renderRace(); return; }
+  if(!match.entryPaid && match.entryFee>0){
+    if(S.coins<match.entryFee){ msgModal('🪙','Altın yetersiz','Maça girmek için '+match.entryFee+' altın gerekiyor.'); return; }
+    S.coins-=match.entryFee;
+    match.entryPaid=true;
+    sndCoin();
+  }
+  match.status='in_progress';
+  S.online.activeMatch=match;
+  S.online.pendingMatch=null;
+  await saveState();
+  refreshMenu();
+  startCompetitiveGame(match.source);
+}
+function isCompetitiveMode(){ return ['friend','matchmaking','tournament'].includes(mode); }
+function renderRoom(){
+  ensureOnlineState();
+  const room=S.online.room; if(!room) return;
+  const code=$('room-code-label'); if(code) code.textContent=room.code;
+  const ready=$('btn-room-ready'); if(ready) ready.textContent=room.ready?'Hazırsın':'Hazır Ol';
+  const start=$('btn-room-start'); if(start) start.disabled=!room.ready;
+  const list=$('room-players');
+  if(list){
+    list.innerHTML=(room.players||[]).map(p=>
+      '<div class="room-player"><span class="avatar">'+(p.id==='me'?'⭐':'🎱')+'</span><span class="name">'+escapeHtml(p.name)+'<small> • ELO '+(p.elo||S.elo)+'</small></span><span class="ready">'+(p.ready?'Hazır':'Bekliyor')+'</span></div>'
+    ).join('');
+  }
+  renderRoomChat();
+}
+function renderRoomChat(){
+  const room=ensureOnlineState().room;
+  const box=$('chat-list'); if(!box || !room) return;
+  box.innerHTML=(room.chat||[]).map(m=>'<div class="chat-bubble '+(m.from==='me'?'me':m.from==='system'?'system':'rival')+'">'+escapeHtml(m.text)+'</div>').join('');
+  box.scrollTop=box.scrollHeight;
+}
+function renderRace(){
+  ensureOnlineState();
+  const match=S.online.activeMatch || S.online.lastMatch || S.online.pendingMatch;
+  const box=$('race-scoreboard'); if(!box) return;
+  const note=$('race-note');
+  if(!match){
+    if(note) note.textContent='Hazır maç yok.';
+    box.innerHTML='<div class="score-card">Oda kur, eşleşme bul veya turnuva başlat.</div>';
+    return;
+  }
+  if(note) note.textContent=(match.source==='friend'?'Arkadaş odası':match.source==='matchmaking'?'Online maç':'Turnuva')+' • '+(match.status==='complete'?'Bitti':match.status==='in_progress'?'Devam ediyor':'Hazır');
+  const p=match.player, o=match.opponent;
+  box.innerHTML='\
+    <div class="race-head"><div class="race-player me">'+escapeHtml(p.name)+'</div><div class="race-vs">VS</div><div class="race-player rival">'+escapeHtml(o.name)+'</div></div>\
+    <div class="race-stats">\
+      <div class="race-stat"><span>Tur</span><b>'+match.round+'/'+match.targetRounds+'</b></div>\
+      <div class="race-stat"><span>Doğru</span><b>'+p.correct+' / '+o.correct+'</b></div>\
+      <div class="race-stat"><span>Kombo</span><b>'+p.combo+'x / '+o.combo+'x</b></div>\
+      <div class="race-stat"><span>Can</span><b>'+p.lives+' / '+o.lives+'</b></div>\
+      <div class="race-stat"><span>Puan</span><b>'+p.score+'</b></div>\
+      <div class="race-stat"><span>Rakip</span><b>'+o.score+'</b></div>\
+    </div>\
+    <div class="race-score-line"><div class="score-card">Giriş: <b>'+match.entryFee+' 🪙</b></div><div class="score-card">Ödül: <b>'+match.prize+' 🪙</b></div></div>';
+  const play=$('btn-race-play');
+  if(play){
+    play.style.display=match.status==='complete'?'none':'inline-block';
+    play.textContent=match.status==='in_progress'?'Maça Devam':'Maça Başla';
+  }
+  const roomBtn=$('btn-race-room');
+  if(roomBtn) roomBtn.style.display=match.source==='friend'?'inline-block':'none';
+}
+function renderMatchmaking(){
+  ensureOnlineState();
+  const elo=$('elo-label'); if(elo) elo.textContent=S.elo;
+  const status=$('matchmaking-status');
+  const result=$('matchmaking-result');
+  const start=$('btn-start-found-match');
+  const pending=S.online.pendingMatch;
+  if(status){ status.classList.remove('searching'); status.textContent=pending?'Rakip bulundu':'Hazır'; }
+  if(result){
+    result.innerHTML=pending ? 'Rakip: <b>'+escapeHtml(pending.opponent.name)+'</b><br>ELO: <b>'+pending.opponent.elo+'</b><br>Giriş: <b>'+pending.entryFee+' 🪙</b> • Ödül: <b>'+pending.prize+' 🪙</b>' : '';
+  }
+  if(start) start.style.display=pending?'inline-block':'none';
+}
+function renderTournament(){
+  ensureOnlineState();
+  const list=$('tournament-list');
+  if(list){
+    list.innerHTML=Object.values(TOURNAMENT_TYPES).map(c=>
+      '<div class="tournament-card"><h3>'+c.badge+' '+c.name+'</h3><p>Giriş: '+c.entry+' 🪙<br>Ödül: '+c.prize+' 🪙</p><button class="btn small" data-tournament="'+c.id+'">Katıl</button></div>'
+    ).join('');
+  }
+  const t=S.online.tournament;
+  const bracket=$('tournament-bracket');
+  const play=$('btn-tournament-play');
+  if(!bracket) return;
+  if(!t){
+    bracket.innerHTML='<div class="bracket-title">Aktif turnuva yok.</div>';
+    if(play) play.style.display='none';
+    return;
+  }
+  const cup=TOURNAMENT_TYPES[t.type]||TOURNAMENT_TYPES.mini;
+  const roundNames=['Çeyrek Final','Yarı Final','Final'];
+  bracket.innerHTML='\
+    <div class="bracket-title">'+cup.badge+' '+cup.name+' • '+(t.status==='active'?roundNames[t.roundIndex]:t.status==='won'?'Şampiyon':'Elendi')+'</div>\
+    <div class="bracket-grid">'+(t.participants||[]).map((name,i)=>'<div class="bracket-person '+(i===0?'me':'')+'">'+escapeHtml(name)+'</div>').join('')+'</div>\
+    <div class="bracket-grid">'+roundNames.map((name,i)=>'<div class="bracket-stage '+(i===t.roundIndex&&t.status==='active'?'active':i<t.roundIndex||t.status==='won'?'done':'')+'">'+name+'<br><small>'+(t.route[i]?escapeHtml(onlineName()+' vs '+t.route[i]):'Bekliyor')+'</small></div>').join('')+'</div>';
+  if(play){
+    play.style.display=t.status==='active'?'inline-block':'none';
+    play.textContent=roundNames[t.roundIndex]+' Oyna';
+  }
 }
 function ensureDailyStats(){
   const t=todayStr();
@@ -1168,6 +1576,7 @@ async function handleTimeout(){
   lives--; consecutiveLifeLosses++; updateHUD();
   await saveRunState();
   await wait(1050);
+  if(await recordCompetitiveRound(false)) return;
   if(lives<=0){ gameOver(); }
   else{ await maybePlayFailureAd(); await maybeForceRestAfterLifeLoss(); await liftCup(ballCup,false); hideBall(); startRound(); }
 }
@@ -1374,7 +1783,7 @@ async function onCupTap(cup){
     S.coins+=reward;
     S.bestCombo=Math.max(S.bestCombo||0,streak);
     if(mode==='classic') S.bestLevel=Math.max(S.bestLevel,level);
-    else S.bestEndless=Math.max(S.bestEndless,level);
+    else if(mode==='endless') S.bestEndless=Math.max(S.bestEndless,level);
     const cleanWin = !hintUsedThisRound && !eliminateUsedThisRound && !varrUsedThisRound;
     await recordDailyWin(cleanWin,{noHintWin:!hintUsedThisRound,noVarWin:!varrUsedThisRound,comebackWin,sportBallWin:isSportBallActive()});
     await saveState();
@@ -1387,6 +1796,7 @@ async function onCupTap(cup){
     setTimeout(()=>$('combo-label').parentElement.classList.remove('combo-burst'),300);
     updateHUD();
     await wait(1300);
+    if(await recordCompetitiveRound(true)) return;
     const clearedLevel = level;
     if(mode==='classic' && clearedLevel >= MAX_CLASSIC_LEVEL){
       completeCampaign();
@@ -1395,7 +1805,7 @@ async function onCupTap(cup){
     level++;
     await saveRunState();
     if(mode==='classic' && clearedLevel % AD_BREAK_EVERY_LEVEL === 0){
-      await playAdBreak(clearedLevel);
+      await showRestCountdown('Bölüm '+clearedLevel+' bitti. Sıradaki raunta hazırlan.');
     }
     startRound();
   }else{
@@ -1424,6 +1834,7 @@ async function onCupTap(cup){
     await wait(900);
     const wantsVarr=await waitForVarrOpportunity(4200);
     if(wantsVarr){ await playVarrReview(lastRoundRecord); }
+    if(await recordCompetitiveRound(false)) return;
     if(lives<=0){ gameOver(); }
     else{
       await maybePlayFailureAd();
@@ -1445,7 +1856,8 @@ async function onCupTap(cup){
 async function showRestCountdown(reason='rest'){
   stopAllGameAudio();
   $('modal-adbreak').querySelector('h2').textContent = 'Dinlenme';
-  $('modal-adbreak').querySelector('p').innerHTML = 'Bir sonraki hamleye hazırlan…<br><span id="adbreak-count" style="font-size:34px;font-family:\'Nunito\',system-ui,sans-serif;font-weight:900;color:var(--gold)">'+REST_SECONDS+'</span>';
+  const text = typeof reason==='string' && reason && reason!=='rest' ? reason : 'Bir sonraki hamleye hazırlan...';
+  $('modal-adbreak').querySelector('p').innerHTML = text+'<br><span id="adbreak-count" style="font-size:34px;font-family:\'Nunito\',system-ui,sans-serif;font-weight:900;color:var(--gold)">'+REST_SECONDS+'</span>';
   modal('modal-adbreak',true);
   let n=REST_SECONDS; $('adbreak-count').textContent=n;
   await new Promise(res=>{
@@ -1476,6 +1888,10 @@ async function completeCampaign(){
 }
 
 function gameOver(){
+  if(isCompetitiveMode() && S.online && S.online.activeMatch){
+    finishCompetitiveMatch(true);
+    return;
+  }
   busy=false; stopChoiceTimer(); setHelperButtons(false); clearRunState();
   const label = mode==='endless' ? 'Sonsuz modda '+(level-1)+' tur dayandın!' : 'Bölüm '+Math.min(level,MAX_CLASSIC_LEVEL)+'/'+MAX_CLASSIC_LEVEL+' seviyesine ulaştın!';
   $('gameover-stats').innerHTML=label+'<br>En iyi kombo: '+(S.bestCombo||0)+'x<br>Toplam altın: '+S.coins+' 🪙<br><br>Çok yaklaştın. Bir deneme daha genelde yeter.';
@@ -1485,12 +1901,28 @@ function gameOver(){
 
 async function startGame(m){
   isPaused=false; stopAllGameAudio();
+  ensureOnlineState();
+  if(m==='classic' || m==='endless'){
+    S.online.activeMatch=null;
+    S.online.pendingMatch=null;
+    await saveState();
+  }
   mode=m; level=1; lives=MAX_LIVES; streak=0; adUsedThisRun=false; failuresSinceAd=0;
   playSessionStartedAt=Date.now(); consecutiveLifeLosses=0; longPlayRestTriggeredThisRun=false;
   resetRunPerkState();
   showScreen('screen-game');
   requestGameFullscreen();
   await saveRunState();
+  startRound();
+}
+async function startCompetitiveGame(source){
+  isPaused=false; stopAllGameAudio();
+  mode=source;
+  level=1; lives=MAX_LIVES; streak=0; adUsedThisRun=false; failuresSinceAd=0;
+  playSessionStartedAt=Date.now(); consecutiveLifeLosses=0; longPlayRestTriggeredThisRun=false;
+  resetRunPerkState();
+  showScreen('screen-game');
+  requestGameFullscreen();
   startRound();
 }
 
@@ -1620,7 +2052,7 @@ function renderShop(){
     }else if(isOwned){
       btn='<button class="btn skin-btn secondary select-btn" data-act="select" data-id="'+sk.id+'">Seç</button>';
     }else{
-      btn='<button class="btn skin-btn buy" data-act="buy" data-id="'+sk.id+'"><span>Satın Al</span><b>'+sk.price+' 🪙</b></button>';
+      btn='<button class="btn skin-btn buy" data-act="buy" data-id="'+sk.id+'"><span>Satın Al</span></button>';
     }
     card.innerHTML='\
       <div class="skin-card-head"><div class="skin-badge">'+tierLabelFor(sk)+'</div><div class="skin-owned-mark">'+(isSelected?'✓':isOwned?'•':'🔒')+'</div></div>\
@@ -1684,11 +2116,6 @@ async function pauseGame(){
   pauseAdBusy=true;
   await saveRunState();
   stopAllGameAudio();
-  const now=Date.now();
-  if(now-lastPauseAdAt>PAUSE_AD_COOLDOWN_MS){
-    lastPauseAdAt=now;
-    await playAdBreak('pause',{noReward:true,restAfter:true});
-  }
   $('pause-stats').innerHTML='Bölüm '+level+(mode==='classic'?'/'+MAX_CLASSIC_LEVEL:'')+'<br>Can: '+lives+'/'+MAX_LIVES+' • Kombo: '+streak+'x';
   modal('modal-pause',true);
   pauseAdBusy=false;
@@ -1722,6 +2149,56 @@ $('btn-league').addEventListener('click',()=>{stopAllGameAudio();ensureWeeklyLea
 $('btn-league-back').addEventListener('click',()=>{refreshMenu();showScreen('screen-menu');});
 $('btn-shop').addEventListener('click',()=>{stopAllGameAudio();showScreen('screen-shop');renderShop();});
 $('btn-shop-back').addEventListener('click',()=>{stopAllGameAudio();refreshMenu();showScreen('screen-menu');});
+$('btn-friends').addEventListener('click',()=>{stopAllGameAudio();showScreen('screen-friends');});
+$('btn-friends-back').addEventListener('click',()=>{refreshMenu();showScreen('screen-menu');});
+$('btn-create-room').addEventListener('click',()=>createRoomMock());
+$('btn-join-room').addEventListener('click',()=>joinRoomMock($('room-code-input').value));
+$('room-code-input').addEventListener('keydown',e=>{ if(e.key==='Enter') $('btn-join-room').click(); });
+$('btn-room-leave').addEventListener('click',()=>leaveRoomMock());
+$('btn-copy-room').addEventListener('click',async ()=>{
+  const code=(S.online&&S.online.room&&S.online.room.code)||'';
+  try{ if(navigator.clipboard) await navigator.clipboard.writeText(code); msgModal('📋','Kod kopyalandı',code); }
+  catch(e){ msgModal('📋','Oda kodu',code); }
+});
+$('btn-share-room').addEventListener('click',async ()=>{
+  const code=(S.online&&S.online.room&&S.online.room.code)||'';
+  const text='Top Bulmaca oda kodum: '+code;
+  try{ if(navigator.share) await navigator.share({title:'Top Bulmaca',text}); else msgModal('🔗','Paylaş',text); }
+  catch(e){}
+});
+$('btn-room-ready').addEventListener('click',async ()=>{
+  ensureOnlineState();
+  if(!S.online.room) return;
+  S.online.room.ready=!S.online.room.ready;
+  const me=(S.online.room.players||[]).find(p=>p.id==='me');
+  if(me) me.ready=S.online.room.ready;
+  S.online.room.chat.push(systemChat(S.online.room.ready?'Hazır oldun.':'Hazır durumundan çıktın.'));
+  await saveState();
+  renderRoom();
+});
+$('btn-room-start').addEventListener('click',()=>{
+  ensureOnlineState();
+  if(!S.online.room || !S.online.room.ready){ msgModal('⏳','Hazır değilsin','Maçı başlatmadan önce hazır olmalısın.'); return; }
+  startFriendMatchMock();
+});
+$('btn-chat-send').addEventListener('click',async ()=>{
+  const input=$('chat-input');
+  await sendChatMock(input.value);
+  input.value='';
+});
+$('chat-input').addEventListener('keydown',e=>{ if(e.key==='Enter') $('btn-chat-send').click(); });
+$('emoji-row').addEventListener('click',e=>{ const b=e.target.closest('button'); if(b) sendEmojiMock(b.textContent); });
+$('btn-race-play').addEventListener('click',()=>beginCompetitiveGame());
+$('btn-race-room').addEventListener('click',()=>{renderRoom();showScreen('screen-room');});
+$('btn-race-menu').addEventListener('click',async ()=>{ensureOnlineState();S.online.activeMatch=null;await saveState();refreshMenu();showScreen('screen-menu');});
+$('btn-matchmaking').addEventListener('click',()=>{stopAllGameAudio();renderMatchmaking();showScreen('screen-matchmaking');});
+$('btn-matchmaking-back').addEventListener('click',()=>{if(mockSearchTimer) clearTimeout(mockSearchTimer);refreshMenu();showScreen('screen-menu');});
+$('btn-find-match').addEventListener('click',async e=>{e.currentTarget.disabled=true;await findMatchMock();e.currentTarget.disabled=false;});
+$('btn-start-found-match').addEventListener('click',()=>beginCompetitiveGame());
+$('btn-tournament').addEventListener('click',()=>{stopAllGameAudio();renderTournament();showScreen('screen-tournament');});
+$('btn-tournament-back').addEventListener('click',()=>{refreshMenu();showScreen('screen-menu');});
+$('tournament-list').addEventListener('click',e=>{ const b=e.target.closest('button[data-tournament]'); if(b) startTournamentMock(b.dataset.tournament); });
+$('btn-tournament-play').addEventListener('click',()=>prepareTournamentRound());
 $('btn-quit').addEventListener('click',async ()=>{isPaused=false;busy=false;guessing=false;stopChoiceTimer();stopAllGameAudio();await clearRunState();refreshMenu();showScreen('screen-menu');});
 $('btn-retry').addEventListener('click',()=>{modal('modal-gameover',false);startGame(mode);});
 $('btn-go-menu').addEventListener('click',async ()=>{modal('modal-gameover',false);isPaused=false;busy=false;guessing=false;stopChoiceTimer();stopAllGameAudio();await clearRunState();refreshMenu();showScreen('screen-menu');});

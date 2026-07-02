@@ -27,8 +27,6 @@
     <span class="brand-word brand-top">T<span class="brand-ball-o">o</span>p</span>
     <span class="brand-word brand-bulmaca">Bulmaca</span>
   </h1>
-  <p class="tagline">Topu takip et, doğru bardağı seç!</p>
-  <p class="player-welcome" id="player-welcome">Hoş geldin!</p>
   <div class="menu-stage" aria-hidden="true">
     <div class="demo-cup demo-cup-1"><div></div></div>
     <div class="demo-cup demo-cup-2"><div></div></div>
@@ -37,6 +35,8 @@
     <div class="demo-ball demo-ball-2"></div>
     <div class="demo-ball demo-ball-3"></div>
   </div>
+  <p class="tagline">Topu takip et, doğru bardağı seç!</p>
+  <p class="player-welcome" id="player-welcome">Hoş geldin!</p>
   <div class="best-badges">
     <div class="pill">🪙 <span id="menu-coins">0</span></div>
     <div class="pill">🏅 En iyi seviye: <span id="best-level">–</span></div>
@@ -46,6 +46,9 @@
   </div>
   <button class="btn" id="btn-classic">▶️ Oyna</button>
   <button class="btn secondary" id="btn-endless">♾️ Sonsuz Mod</button>
+  <button class="btn secondary" id="btn-friends">🤝 Arkadaşla Oyna</button>
+  <button class="btn secondary" id="btn-matchmaking">⚡ Online Maç</button>
+  <button class="btn secondary" id="btn-tournament">🏟️ Turnuva</button>
   <button class="btn secondary" id="btn-levels">🗺️ Bölümler</button>
   <button class="btn secondary" id="btn-missions">🎯 Haftalık Görevler</button>
   <button class="btn secondary" id="btn-league">🏆 Haftalık Lig</button>
@@ -114,6 +117,90 @@
   </div>
   <div id="shop-grid"></div>
   <button class="btn small secondary" id="btn-shop-back" style="margin-top:10px">← Geri</button>
+</div>
+
+<!-- ======== FRIEND ROOM MENU ======== -->
+<div class="screen online-screen" id="screen-friends">
+  <h1 class="logo page-logo">ARKADAŞLA OYNA</h1>
+  <p class="tagline online-note">Davet koduyla local/mock oda kur. Gerçek online bağlantı sonraki aşamada bağlanacak.</p>
+  <div class="online-panel">
+    <button class="btn" id="btn-create-room">➕ Oda Oluştur</button>
+    <div class="join-box">
+      <input id="room-code-input" class="online-input" type="text" maxlength="9" placeholder="TB-482913" autocomplete="off">
+      <button class="btn secondary" id="btn-join-room">🔑 Odaya Katıl</button>
+    </div>
+  </div>
+  <button class="btn small secondary" id="btn-friends-back">← Geri</button>
+</div>
+
+<!-- ======== ROOM LOBBY ======== -->
+<div class="screen online-screen" id="screen-room">
+  <h1 class="logo page-logo">ODA</h1>
+  <div class="room-shell">
+    <div class="room-code-card">
+      <span>Oda Kodu</span>
+      <strong id="room-code-label">TB-000000</strong>
+      <div class="room-actions">
+        <button class="btn small secondary" id="btn-copy-room">Kopyala</button>
+        <button class="btn small secondary" id="btn-share-room">Paylaş</button>
+      </div>
+    </div>
+    <div id="room-players" class="room-players"></div>
+    <div class="room-actions main">
+      <button class="btn small" id="btn-room-ready">Hazır Ol</button>
+      <button class="btn small secondary" id="btn-room-start">Başlat</button>
+    </div>
+    <div class="chat-panel">
+      <div id="chat-list" class="chat-list"></div>
+      <div class="emoji-row" id="emoji-row">
+        <button>😂</button><button>😎</button><button>😡</button><button>👀</button>
+        <button>🎯</button><button>🔥</button><button>💀</button><button>👏</button>
+      </div>
+      <div class="chat-compose">
+        <input id="chat-input" class="online-input" type="text" maxlength="80" placeholder="Mesaj yaz...">
+        <button class="btn small" id="btn-chat-send">Gönder</button>
+      </div>
+    </div>
+  </div>
+  <button class="btn small secondary" id="btn-room-leave">← Odadan Çık</button>
+</div>
+
+<!-- ======== MOCK RACE ======== -->
+<div class="screen online-screen" id="screen-race">
+  <h1 class="logo page-logo">YARIŞMA</h1>
+  <p class="tagline online-note" id="race-note">Local/mock maç hazırlanıyor.</p>
+  <div id="race-scoreboard" class="race-scoreboard"></div>
+  <div class="race-actions">
+    <button class="btn" id="btn-race-play">Maça Başla</button>
+    <button class="btn small secondary" id="btn-race-room">Odaya Dön</button>
+    <button class="btn small secondary" id="btn-race-menu">Ana Menü</button>
+  </div>
+</div>
+
+<!-- ======== MATCHMAKING ======== -->
+<div class="screen online-screen" id="screen-matchmaking">
+  <h1 class="logo page-logo">ONLINE MAÇ</h1>
+  <p class="tagline online-note">Şimdilik gerçek arama yok; 3 saniyede mock rakip bulunur.</p>
+  <div class="match-card">
+    <div class="elo-pill">ELO: <b id="elo-label">1000</b></div>
+    <div id="matchmaking-status" class="matchmaking-status">Hazır</div>
+    <div id="matchmaking-result" class="matchmaking-result"></div>
+    <button class="btn" id="btn-find-match">Eşleşme Bul</button>
+    <button class="btn secondary" id="btn-start-found-match" style="display:none">Maça Gir</button>
+  </div>
+  <button class="btn small secondary" id="btn-matchmaking-back">← Geri</button>
+</div>
+
+<!-- ======== TOURNAMENT ======== -->
+<div class="screen online-screen" id="screen-tournament">
+  <h1 class="logo page-logo">TURNUVA</h1>
+  <p class="tagline online-note">Sadece oyun içi altınla local/mock kupa. Gerçek para veya çekim yok.</p>
+  <div id="tournament-list" class="tournament-list"></div>
+  <div id="tournament-bracket" class="tournament-bracket"></div>
+  <div class="race-actions">
+    <button class="btn" id="btn-tournament-play" style="display:none">Turu Oyna</button>
+    <button class="btn small secondary" id="btn-tournament-back">← Geri</button>
+  </div>
 </div>
 
 
