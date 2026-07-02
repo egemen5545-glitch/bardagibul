@@ -1,7 +1,7 @@
 <?xml version='1.0' encoding='utf-8'?>
 <resources>
-    <string name="app_name">Bardağı Bul</string>
-    <string name="title_activity_main">Bardağı Bul</string>
+    <string name="app_name">Top Bulmaca</string>
+    <string name="title_activity_main">Top Bulmaca</string>
     <string name="package_name">com.egemen5545.bardagibul</string>
     <string name="custom_url_scheme">com.egemen5545.bardagibul</string>
 </resources>

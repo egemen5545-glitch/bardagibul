@@ -4,35 +4,64 @@
 
 /* ---------- Skinler ---------- */
 const CUP_SKINS = [
-  {id:'red', name:'Kırmızı Klasik', price:0, tag:'Başlangıç', css:'linear-gradient(180deg,#F0705C,#D94F3D 50%,#A93425)', rim:'#8E2A1D'},
-  {id:'ice', name:'Buz Mavisi', price:150, tag:'Serin', css:'linear-gradient(180deg,#BCEBFF,#59BDEB 55%,#276D9E)', rim:'#1F5578'},
-  {id:'mint', name:'Nane Yeşili', price:180, tag:'Yumuşak', css:'linear-gradient(180deg,#B9FFD6,#4EE28C 55%,#188753)', rim:'#0D633B'},
-  {id:'sport-blue', name:'Tribün Mavisi', price:220, tag:'Spor', css:'linear-gradient(180deg,#7FD3FF,#248DDB 52%,#13558C)', rim:'#0E3D67'},
-  {id:'court', name:'Kort Yeşili', price:260, tag:'Tenis', css:'linear-gradient(180deg,#C8FF6A,#74D43F 55%,#2F8423)', rim:'#1F6119'},
-  {id:'gold', name:'Altın Kupa', price:400, tag:'Parlak', css:'linear-gradient(180deg,#FBE08A,#F2C14E 50%,#C08A1E)', rim:'#8F6510'},
-  {id:'basket', name:'Basket Turuncu', price:440, tag:'Basket', css:'linear-gradient(180deg,#FFB16A,#E97824 54%,#9A3C10)', rim:'#6E2809'},
-  {id:'neon', name:'Neon Yeşil', price:600, tag:'Gece', css:'linear-gradient(180deg,#B9FF5C,#39E06A 55%,#0FA35A)', rim:'#0B7A42'},
-  {id:'cherry', name:'Vişne Kırmızısı', price:720, tag:'Zor Bölge', css:'linear-gradient(180deg,#FF8A8A,#D63749 52%,#8D1725)', rim:'#65101A'},
-  {id:'galaxy', name:'Galaksi', price:900, tag:'Efsane', css:'linear-gradient(160deg,#6D5BD0,#3B2E86 45%,#1B1440 90%)', rim:'#141032'},
-  {id:'carbon', name:'Karbon Siyah', price:1100, tag:'Premium', css:'linear-gradient(180deg,#777,#2B2B2B 54%,#0E0E0E)', rim:'#050505'},
-  {id:'diamond', name:'Elmas Bardak', price:1500, tag:'Ultra', css:'linear-gradient(180deg,#F3FFFF,#9EE9FF 45%,#5BAEC7 78%,#FFFFFF)', rim:'#4F94AA'}
+  {id:'red', name:'Kırmızı Klasik', price:0, tier:'common', tag:'Başlangıç', css:'linear-gradient(180deg,#F0705C,#D94F3D 50%,#A93425)', rim:'#8E2A1D'},
+  {id:'ice', name:'Buz Mavisi', price:650, tier:'common', tag:'Temel', css:'linear-gradient(180deg,#BCEBFF,#59BDEB 55%,#276D9E)', rim:'#1F5578'},
+  {id:'mint', name:'Nane Yeşili', price:780, tier:'common', tag:'Temel', css:'linear-gradient(180deg,#B9FFD6,#4EE28C 55%,#188753)', rim:'#0D633B'},
+  {id:'sport-blue', name:'Tribün Mavisi', price:980, tier:'common', tag:'Spor', css:'linear-gradient(180deg,#7FD3FF,#248DDB 52%,#13558C)', rim:'#0E3D67'},
+  {id:'court', name:'Kort Yeşili', price:1150, tier:'common', tag:'Spor', css:'linear-gradient(180deg,#C8FF6A,#74D43F 55%,#2F8423)', rim:'#1F6119'},
+
+  {id:'flag-tr', name:'Türkiye Renkleri', price:1450, tier:'rare', tag:'Bayrak', perk:{type:'coinBoost', value:2}, css:'linear-gradient(90deg,#e30a17 0 42%,#fff 42% 58%,#e30a17 58% 100%)', rim:'#8f1014'},
+  {id:'flag-de', name:'Almanya Renkleri', price:1550, tier:'rare', tag:'Bayrak', perk:{type:'slowStart', value:1.10}, css:'linear-gradient(180deg,#151515 0 33%,#dd0000 33% 66%,#ffce00 66% 100%)', rim:'#1b1b1b'},
+  {id:'flag-fr', name:'Fransa Renkleri', price:1650, tier:'rare', tag:'Bayrak', perk:{type:'focus', value:200}, css:'linear-gradient(90deg,#0055a4 0 33%,#fff 33% 66%,#ef4135 66% 100%)', rim:'#123b72'},
+  {id:'flag-it', name:'İtalya Renkleri', price:1750, tier:'rare', tag:'Bayrak', perk:{type:'steadyCup', value:.88}, css:'linear-gradient(90deg,#009246 0 33%,#fff 33% 66%,#ce2b37 66% 100%)', rim:'#12613a'},
+  {id:'besiktas', name:'Beşiktaş Siyah Beyaz', price:1900, tier:'rare', tag:'Takım', perk:{type:'steadyCup', value:.88}, css:'linear-gradient(90deg,#111 0 28%,#fff 28% 58%,#d71920 58% 70%,#111 70% 100%)', rim:'#0a0a0a'},
+  {id:'samsunspor', name:'Samsunspor Kırmızı', price:2100, tier:'rare', tag:'Takım', perk:{type:'focus', value:200}, css:'linear-gradient(135deg,#d71920 0 48%,#fff 48% 56%,#d71920 56% 100%)', rim:'#8f1116'},
+  {id:'neon', name:'Neon Yeşil', price:2300, tier:'rare', tag:'Gece', perk:{type:'coinBoost', value:2}, css:'linear-gradient(180deg,#B9FF5C,#39E06A 55%,#0FA35A)', rim:'#0B7A42'},
+  {id:'cherry', name:'Vişne Kırmızısı', price:2450, tier:'rare', tag:'Zor Bölge', perk:{type:'focus', value:200}, css:'linear-gradient(180deg,#FF8A8A,#D63749 52%,#8D1725)', rim:'#65101A'},
+
+  {id:'flag-br', name:'Brezilya Renkleri', price:2850, tier:'epic', tag:'Bayrak', perk:{type:'coinBoost', value:2}, css:'radial-gradient(circle at 50% 46%,#1d4ed8 0 18%,transparent 19%),linear-gradient(135deg,transparent 28%,#ffdf00 29% 49%,transparent 50%),linear-gradient(45deg,transparent 28%,#ffdf00 29% 49%,transparent 50%),linear-gradient(180deg,#009b3a,#057a35)', rim:'#075c2c'},
+  {id:'flag-jp', name:'Japonya Renkleri', price:3050, tier:'epic', tag:'Bayrak', perk:{type:'xray', value:280}, css:'radial-gradient(circle at 50% 43%,#bc002d 0 24%,transparent 25%),linear-gradient(180deg,#f8f8f8,#e8e8e8)', rim:'#bdbdbd'},
+  {id:'flag-us', name:'ABD Renkleri', price:3250, tier:'epic', tag:'Bayrak', perk:{type:'slowStart', value:1.10}, css:'linear-gradient(180deg,#b22234 0 12%,#fff 12% 24%,#b22234 24% 36%,#fff 36% 48%,#b22234 48% 60%,#fff 60% 72%,#b22234 72% 84%,#fff 84% 100%)', rim:'#26335b'},
+  {id:'galatasaray', name:'Galatasaray Sarı Kırmızı', price:3450, tier:'epic', tag:'Takım', perk:{type:'coinBoost', value:2}, css:'linear-gradient(90deg,#a90432 0 50%,#fdb912 50% 100%)', rim:'#7f0826'},
+  {id:'fenerbahce', name:'Fenerbahçe Lacivert Sarı', price:3650, tier:'epic', tag:'Takım', perk:{type:'focus', value:200}, css:'linear-gradient(90deg,#002b5c 0 25%,#f7d117 25% 50%,#002b5c 50% 75%,#f7d117 75% 100%)', rim:'#001b3f'},
+  {id:'trabzonspor', name:'Trabzonspor Bordo Mavi', price:3850, tier:'epic', tag:'Takım', perk:{type:'slowStart', value:1.10}, css:'linear-gradient(135deg,#6f1d46 0 50%,#41a6d9 50% 100%)', rim:'#4c1733'},
+  {id:'basket', name:'Basket Turuncu', price:4050, tier:'epic', tag:'Basket', perk:{type:'steadyCup', value:.86}, css:'linear-gradient(180deg,#FFB16A,#E97824 54%,#9A3C10)', rim:'#6E2809'},
+  {id:'gold', name:'Altın Kupa', price:4400, tier:'epic', tag:'Parlak', perk:{type:'xray', value:300}, css:'linear-gradient(180deg,#FBE08A,#F2C14E 50%,#C08A1E)', rim:'#8F6510'},
+
+  {id:'galaxy', name:'Galaksi', price:6600, tier:'legendary', tag:'Efsane', perk:{type:'comboShield', value:1}, css:'linear-gradient(160deg,#6D5BD0,#3B2E86 45%,#1B1440 90%)', rim:'#141032'},
+  {id:'carbon', name:'Karbon Siyah', price:7600, tier:'legendary', tag:'Premium', perk:{type:'steadyCup', value:.82}, css:'linear-gradient(180deg,#777,#2B2B2B 54%,#0E0E0E)', rim:'#050505'},
+  {id:'diamond', name:'Elmas Bardak', price:8800, tier:'legendary', tag:'Ultra', perk:{type:'xray', value:330}, css:'linear-gradient(180deg,#F3FFFF,#9EE9FF 45%,#5BAEC7 78%,#FFFFFF)', rim:'#4F94AA'}
 ];
 const BALL_SKINS = [
-  {id:'orange', name:'Turuncu Top', price:0, tag:'Başlangıç', icon:'🟠', css:'radial-gradient(circle at 32% 28%,#FFC078,#F2812E 55%,#B4520E)'},
-  {id:'soccer', name:'Futbol Topu', price:100, tag:'Futbol', icon:'⚽', css:'radial-gradient(circle at 32% 28%,#fff,#d8d8d8 55%,#8a8a8a)'},
-  {id:'basketball', name:'Basketbol', price:180, tag:'Basket', icon:'🏀', css:'radial-gradient(circle at 32% 28%,#ffbe71,#e46f22 55%,#8c3108)'},
-  {id:'tennis', name:'Tenis Topu', price:220, tag:'Tenis', icon:'🎾', css:'radial-gradient(circle at 32% 28%,#f4ff8a,#b8e338 55%,#6d9e13)'},
-  {id:'volley', name:'Voleybol', price:260, tag:'Voleybol', icon:'🏐', css:'conic-gradient(from 15deg,#ffffff,#e8f2ff,#5ab3ff,#ffffff,#ffd95c,#ffffff)'},
-  {id:'billiard8', name:'8 Numara', price:320, tag:'Bilardo', icon:'🎱', css:'radial-gradient(circle at 45% 42%,#ffffff 0 20%,#0f0f0f 21% 100%)'},
-  {id:'golf', name:'Golf Topu', price:360, tag:'Golf', icon:'⛳', css:'radial-gradient(circle at 32% 28%,#ffffff,#e7e7e7 60%,#b9b9b9)'},
-  {id:'disco', name:'Disko Topu', price:420, tag:'Efekt', icon:'🪩', css:'conic-gradient(#ff5c8a,#ffd25c,#5cff8a,#5cc8ff,#b45cff,#ff5c8a)'},
-  {id:'bowling', name:'Bowling Topu', price:520, tag:'Bowling', icon:'🎳', css:'radial-gradient(circle at 28% 22%,#7777ff,#3b2e86 52%,#141032)'},
-  {id:'emerald', name:'Zümrüt', price:620, tag:'Değerli', icon:'💎', css:'radial-gradient(circle at 32% 28%,#8affc9,#20c97a 55%,#0a7a48)'},
-  {id:'fire', name:'Ateş Topu', price:800, tag:'Ateş', icon:'🔥', css:'radial-gradient(circle at 32% 28%,#ffe38a,#ff8a3d 45%,#d0301a 80%)'},
-  {id:'iceball', name:'Buz Topu', price:820, tag:'Buz', icon:'❄️', css:'radial-gradient(circle at 32% 28%,#ffffff,#9ee8ff 48%,#2c7fb0 92%)'},
-  {id:'meteor', name:'Meteor', price:1200, tag:'Final', icon:'☄️', css:'radial-gradient(circle at 30% 25%,#fff3a0,#ff6d38 38%,#4a1010 75%,#100505)'},
-  {id:'crown', name:'Şampiyon Topu', price:1600, tag:'Ultra', icon:'👑', css:'radial-gradient(circle at 30% 24%,#fff7a8,#f2c14e 45%,#8f6510 86%)'}
+  {id:'orange', name:'Turuncu Top', price:0, tier:'common', tag:'Başlangıç', icon:'🟠', css:'radial-gradient(circle at 32% 28%,#FFC078,#F2812E 55%,#B4520E)'},
+  {id:'soccer', name:'Futbol Topu', price:850, tier:'common', tag:'Futbol', sport:true, icon:'⚽', css:'radial-gradient(circle at 32% 28%,#fff,#d8d8d8 55%,#8a8a8a)'},
+  {id:'basketball', name:'Basketbol', price:1050, tier:'common', tag:'Basket', sport:true, icon:'🏀', css:'radial-gradient(circle at 32% 28%,#ffbe71,#e46f22 55%,#8c3108)'},
+  {id:'tennis', name:'Tenis Topu', price:1300, tier:'rare', tag:'Tenis', sport:true, perk:{type:'focus', value:200}, icon:'🎾', css:'radial-gradient(circle at 32% 28%,#f4ff8a,#b8e338 55%,#6d9e13)'},
+  {id:'volley', name:'Voleybol', price:1550, tier:'rare', tag:'Voleybol', sport:true, perk:{type:'steadyCup', value:.90}, icon:'🏐', css:'conic-gradient(from 15deg,#ffffff,#e8f2ff,#5ab3ff,#ffffff,#ffd95c,#ffffff)'},
+  {id:'golf', name:'Golf Topu', price:1750, tier:'rare', tag:'Golf', sport:true, perk:{type:'slowStart', value:1.10}, icon:'⛳', css:'radial-gradient(circle at 32% 28%,#ffffff,#e7e7e7 60%,#b9b9b9)'},
+  {id:'billiard8', name:'8 Numara', price:1950, tier:'rare', tag:'Bilardo', sport:true, perk:{type:'xray', value:260}, icon:'🎱', css:'radial-gradient(circle at 45% 42%,#ffffff 0 20%,#0f0f0f 21% 100%)'},
+  {id:'bowling', name:'Bowling Topu', price:2400, tier:'rare', tag:'Bowling', sport:true, perk:{type:'steadyCup', value:.88}, icon:'🎳', css:'radial-gradient(circle at 28% 22%,#7777ff,#3b2e86 52%,#141032)'},
+  {id:'baseball', name:'Beyzbol Topu', price:2700, tier:'epic', tag:'Beyzbol', sport:true, perk:{type:'focus', value:200}, icon:'⚾', css:'radial-gradient(circle at 50% 50%,transparent 0 42%,rgba(180,24,32,.75) 43% 46%,transparent 47%),radial-gradient(circle at 32% 28%,#fff,#f2f2f2 64%,#bdbdbd)'},
+  {id:'handball', name:'Hentbol Topu', price:2950, tier:'epic', tag:'Hentbol', sport:true, perk:{type:'slowStart', value:1.10}, icon:'🤾', css:'radial-gradient(circle at 32% 28%,#ffcc73,#f29324 55%,#9d4d0e)'},
+  {id:'rugby', name:'Ragbi Topu', price:3200, tier:'epic', tag:'Ragbi', sport:true, perk:{type:'coinBoost', value:2}, icon:'🏉', css:'radial-gradient(ellipse at 50% 50%,#f5b46b 0 28%,#a55725 63%,#5f2b13 100%)'},
+  {id:'disco', name:'Disko Topu', price:3600, tier:'epic', tag:'Efekt', perk:{type:'xray', value:300}, icon:'🪩', css:'conic-gradient(#ff5c8a,#ffd25c,#5cff8a,#5cc8ff,#b45cff,#ff5c8a)'},
+  {id:'emerald', name:'Zümrüt', price:4600, tier:'epic', tag:'Değerli', perk:{type:'coinBoost', value:2}, icon:'💎', css:'radial-gradient(circle at 32% 28%,#8affc9,#20c97a 55%,#0a7a48)'},
+  {id:'fire', name:'Ateş Topu', price:6200, tier:'legendary', tag:'Ateş', perk:{type:'comboShield', value:1}, icon:'🔥', css:'radial-gradient(circle at 32% 28%,#ffe38a,#ff8a3d 45%,#d0301a 80%)'},
+  {id:'iceball', name:'Buz Topu', price:6400, tier:'legendary', tag:'Buz', perk:{type:'slowStart', value:1.12}, icon:'❄️', css:'radial-gradient(circle at 32% 28%,#ffffff,#9ee8ff 48%,#2c7fb0 92%)'},
+  {id:'meteor', name:'Meteor', price:7900, tier:'legendary', tag:'Final', perk:{type:'xray', value:330}, icon:'☄️', css:'radial-gradient(circle at 30% 25%,#fff3a0,#ff6d38 38%,#4a1010 75%,#100505)'},
+  {id:'crown', name:'Şampiyon Topu', price:9200, tier:'legendary', tag:'Ultra', perk:{type:'comboShield', value:1}, icon:'👑', css:'radial-gradient(circle at 30% 24%,#fff7a8,#f2c14e 45%,#8f6510 86%)'}
 ];
+
+const TIER_LABELS = {common:'Common', rare:'Rare', epic:'Epic', legendary:'Legendary'};
+// Perkler küçük tutulur ve activeSkinPerks ile yalnızca ilk 10 bölümde çalışır.
+const PERK_LABELS = {
+  xray:'X-Ray: top +0.3 sn görünür',
+  slowStart:'Slow Start: ilk 2 hareket sakin',
+  focus:'Focus: ipucu +0.2 sn',
+  steadyCup:'Steady Cup: yanıltma daha yumuşak',
+  coinBoost:'Coin Boost: ilk 10 bölüm +2',
+  comboShield:'Combo Shield: 1 kez kombo korur'
+};
 
 const MAX_CLASSIC_LEVEL = 50;
 const AD_BREAK_EVERY_LEVEL = 10;
@@ -81,9 +110,46 @@ const S = {
   lastDaily:'', muted:false,
   musicOn:true, sfxOn:true,
   bestCombo:0, campaignCompleted:false, playerName:'', dailyStats:null,
-  starterCoinsGiven:false
+  starterCoinsGiven:false, weeklyLeague:null, weeklyBadge:''
 };
 function uniqueList(arr){ return Array.from(new Set((Array.isArray(arr)?arr:[]).filter(Boolean))); }
+function selectedCupSkin(){ return CUP_SKINS.find(s=>s.id===S.cupSkin)||CUP_SKINS[0]; }
+function selectedBallSkin(){ return BALL_SKINS.find(s=>s.id===S.ballSkin)||BALL_SKINS[0]; }
+function emptySkinPerks(){
+  return {xrayMs:0, slowStartFactor:1, focusMs:0, steadyFactor:1, coinBoost:0, comboShield:false, labels:[]};
+}
+function addSkinPerk(perks, skin){
+  if(!skin || !skin.perk) return;
+  const p=skin.perk;
+  const label=PERK_LABELS[p.type]||'Küçük kozmetik bonus';
+  if(!perks.labels.includes(label)) perks.labels.push(label);
+  if(p.type==='xray') perks.xrayMs=Math.max(perks.xrayMs, Math.min(350, Number(p.value)||300));
+  if(p.type==='slowStart') perks.slowStartFactor=Math.max(perks.slowStartFactor, Math.min(1.14, Number(p.value)||1.1));
+  if(p.type==='focus') perks.focusMs=Math.max(perks.focusMs, Math.min(220, Number(p.value)||200));
+  if(p.type==='steadyCup') perks.steadyFactor=Math.min(perks.steadyFactor, Math.max(.80, Number(p.value)||.88));
+  if(p.type==='coinBoost') perks.coinBoost=Math.max(perks.coinBoost, Math.min(2, Number(p.value)||2));
+  if(p.type==='comboShield') perks.comboShield=true;
+}
+function activeSkinPerks(lv=level){
+  const capped=Math.max(1,Math.min(Number(lv)||1,MAX_CLASSIC_LEVEL));
+  const perks=emptySkinPerks();
+  if(capped>10) return perks;
+  addSkinPerk(perks, selectedCupSkin());
+  addSkinPerk(perks, selectedBallSkin());
+  return perks;
+}
+function perkTextFor(skin){ return skin && skin.perk ? (PERK_LABELS[skin.perk.type]||'Küçük bonus') : 'İlk 10 bölümde kozmetik'; }
+function tierLabelFor(skin){ return TIER_LABELS[(skin&&skin.tier)||'common'] || 'Common'; }
+function isSportBallActive(){ return level<=10 && !!selectedBallSkin().sport; }
+function resetRunPerkState(){ comboShieldAvailable=!!activeSkinPerks(level).comboShield; }
+function useComboShieldIfReady(){
+  if(level<=10 && comboShieldAvailable && streak>0){
+    comboShieldAvailable=false;
+    haptic(30);
+    return true;
+  }
+  return false;
+}
 function sanitizeState(){
   S.ownedCups = uniqueList(S.ownedCups);
   S.ownedBalls = uniqueList(S.ownedBalls);
@@ -120,6 +186,7 @@ async function saveRunState(){
     streak:Math.max(0,streak||0),
     failuresSinceAd:Math.max(0,failuresSinceAd||0),
     adUsedThisRun:!!adUsedThisRun,
+    comboShieldAvailable:!!comboShieldAvailable,
     playSessionStartedAt:playSessionStartedAt||Date.now(),
     consecutiveLifeLosses:Math.max(0,consecutiveLifeLosses||0),
     longPlayRestTriggeredThisRun:!!longPlayRestTriggeredThisRun,
@@ -474,30 +541,42 @@ function confetti(){
 let mode='classic';       // classic | endless
 let level=1, lives=3, roundCoins=0, adUsedThisRun=false, failuresSinceAd=0;
 let streak=0, eliminateUsedThisRound=false, varrUsedThisRound=false;
-let playSessionStartedAt=0, consecutiveLifeLosses=0, longPlayRestTriggeredThisRun=false;
+let playSessionStartedAt=0, consecutiveLifeLosses=0, longPlayRestTriggeredThisRun=false, comboShieldAvailable=false;
 let choiceTimerId=null, choiceTimerRaf=null, choiceDeadline=0, choiceTimeLeft=0, choiceTimeTotal=0, choiceLastTick=0;
 let cups=[], ballCup=null, guessing=false, hintUsedThisRound=false, busy=false, slotPositions=[];
 let currentRoundRecord=null, lastRoundRecord=null, varrOpportunityResolve=null, varrOpportunityTimer=null, varrReviewing=false;
+let activeRoundPerks=emptySkinPerks();
 
 function levelSettings(lv){
-  const capped = Math.min(lv, MAX_CLASSIC_LEVEL);
-  // V20: oyun artık aşırı hızlanmıyor. Zorluk daha çok bardak sayısı,
-  // renk yakınlığı, sahte hamle ve karar süresiyle geliyor.
-  return {
-    cupCount: Math.min(3 + Math.floor((capped-1)/7), 8),
-    swaps:    Math.min(8 + Math.round(capped*1.35) + Math.floor(capped/10)*2, 40),
-    dur:      Math.max(520 - capped*4, 230),
-    feints:   capped>=8,
-    colors:   capped>=15,
-    invis:    capped>=30,
-    doubleFake: capped>=40,
-    finalZone: capped>=45
-  };
+  const capped = Math.max(1, Math.min(Number(lv)||1, MAX_CLASSIC_LEVEL));
+  const p = ((capped-1)%10)/9;
+  // Zorluk hızdan çok bardak sayısı, renk yakınlığı, sahte hamle ve süre baskısıyla artar.
+  if(capped<=10){
+    return {zone:'blue', cupCount:capped>=6?4:3, swaps:5+Math.round(p*7), dur:590-p*40, feints:capped>=8, colors:false, invis:false, doubleFake:false, finalZone:false, feintChance:.08, colorChance:0, ghostChance:0, bobChance:.06};
+  }
+  if(capped<=20){
+    return {zone:'green', cupCount:capped>=17?5:4, swaps:13+Math.round(p*9), dur:520-p*55, feints:true, colors:false, invis:false, doubleFake:false, finalZone:false, feintChance:.13, colorChance:0, ghostChance:0, bobChance:.10};
+  }
+  if(capped<=30){
+    return {zone:'orange', cupCount:capped>=27?6:5, swaps:21+Math.round(p*10), dur:485-p*55, feints:true, colors:true, invis:false, doubleFake:capped>=28, finalZone:false, feintChance:.20, colorChance:.20, ghostChance:0, bobChance:.18};
+  }
+  if(capped<=40){
+    return {zone:'purple', cupCount:capped>=37?7:6, swaps:28+Math.round(p*9), dur:440-p*45, feints:true, colors:true, invis:true, doubleFake:true, finalZone:false, feintChance:.22, colorChance:.28, ghostChance:.10, bobChance:.20};
+  }
+  return {zone:'red', cupCount:capped>=47?8:7, swaps:33+Math.round(p*9), dur:405-p*42, feints:true, colors:true, invis:true, doubleFake:true, finalZone:true, feintChance:.24, colorChance:.20, ghostChance:.08, bobChance:.22};
 }
 const rewardFor=lv=>BASE_REWARD;
 const comboBonusFor=combo=>combo>=2 ? Math.min(80, combo*5) : 0;
-const choiceTimeFor=lv=>Math.max(3900, 9000 - Math.min(lv,MAX_CLASSIC_LEVEL)*105);
-const shufflePauseFor=lv=>Math.max(24, 82 - Math.min(lv,MAX_CLASSIC_LEVEL)*1.05);
+function choiceTimeFor(lv){
+  const capped=Math.max(1,Math.min(Number(lv)||1,MAX_CLASSIC_LEVEL));
+  const p=((capped-1)%10)/9;
+  if(capped<=10) return Math.round(9500-p*1200);
+  if(capped<=20) return Math.round(8000-p*1100);
+  if(capped<=30) return Math.round(7000-p*1000);
+  if(capped<=40) return Math.round(6100-p*900);
+  return Math.round(5400-p*800);
+}
+const shufflePauseFor=lv=>Math.max(36, 94 - Math.min(lv,MAX_CLASSIC_LEVEL)*1.05);
 
 
 
@@ -522,70 +601,141 @@ function missionDayIndex(date=new Date()){
 }
 const WEEKLY_MISSION_SETS=[
   {
-    day:'Pazartesi', theme:'Şaşkın Pazartesi',
+    day:'Pazartesi', theme:'İpucusuz Isınma',
     missions:[
-      {id:'mon-wins3', title:'Pazartesi Isınması', desc:'Haftaya 3 bölüm geçerek başla.', stat:'wins', target:3, reward:90, icon:'🤹'},
-      {id:'mon-combo4', title:'Dört Dörtlük', desc:'Bugün en az 4x kombo gör.', stat:'maxCombo', target:4, reward:120, icon:'🔥'},
-      {id:'mon-clean1', title:'Tertemiz Tek Tur', desc:'Güç kullanmadan 1 bölüm kazan.', stat:'cleanWins', target:1, reward:100, icon:'💎'}
+      {id:'mon-nohint3', title:'Karanlıkta Üç Adım', desc:'3 tur üst üste ipucu kullanmadan kazan.', stat:'noHintBest', target:3, reward:90, icon:'🌙'},
+      {id:'mon-novar5', title:'Hakemsiz Seri', desc:'VAR kullanmadan 5 bölüm geç.', stat:'noVarWins', target:5, reward:105, icon:'📵'},
+      {id:'mon-wins4', title:'Pazartesi Nabzı', desc:'Bugün 4 bölüm kazan.', stat:'wins', target:4, reward:70, icon:'🏁'}
     ]
   },
   {
-    day:'Salı', theme:'Kurnaz Salı',
+    day:'Salı', theme:'Spor Topu Salısı',
     missions:[
-      {id:'tue-hint1', title:'Işığı Takip Et', desc:'Bugün 1 kez ipucu ışığı kullan.', stat:'hintUses', target:1, reward:80, icon:'💡'},
-      {id:'tue-wins5', title:'Beşlik Seri', desc:'Toplam 5 bölüm doğru bil.', stat:'wins', target:5, reward:135, icon:'🏁'},
-      {id:'tue-var1', title:'Hakeme Git', desc:'1 kez VAR incelemesi aç.', stat:'varUses', target:1, reward:95, icon:'📹'}
+      {id:'tue-sport3', title:'Spor Topuyla Üçlük', desc:'Market spor topu seçiliyken 3 tur kazan.', stat:'sportBallWins', target:3, reward:95, icon:'⚽'},
+      {id:'tue-combo5', title:'Beşlik Alev', desc:'En az 5x kombo gör.', stat:'maxCombo', target:5, reward:85, icon:'🔥'},
+      {id:'tue-clean2', title:'Sessiz İş', desc:'Güç kullanmadan 2 bölüm kazan.', stat:'cleanWins', target:2, reward:80, icon:'💎'}
     ]
   },
   {
-    day:'Çarşamba', theme:'Çılgın Çarşamba',
+    day:'Çarşamba', theme:'Toparlanma Günü',
     missions:[
-      {id:'wed-elim2', title:'Süpürge Günü', desc:'Bugün 2 kez yanlış bardak ele.', stat:'eliminateUses', target:2, reward:120, icon:'🧹'},
-      {id:'wed-combo5', title:'Alev Aldın', desc:'En az 5x kombo yap.', stat:'maxCombo', target:5, reward:160, icon:'🔥'},
-      {id:'wed-fail1', title:'Yanıldım Ama Döndüm', desc:'1 hata yap, sonra devam et. Her usta yanılır.', stat:'failures', target:1, reward:70, icon:'🙃'}
+      {id:'wed-comeback1', title:'Düştüm Kalktım', desc:'2 kez yanlış yaptıktan sonra oyunu toparla.', stat:'comebackWins', target:1, reward:110, icon:'🔁'},
+      {id:'wed-elim2', title:'İki Şüpheli', desc:'2 kez eleme gücü kullan.', stat:'eliminateUses', target:2, reward:70, icon:'🎯'},
+      {id:'wed-nohint2', title:'Işıksız İkili', desc:'2 tur üst üste ipucu kullanmadan kazan.', stat:'noHintBest', target:2, reward:65, icon:'🕶️'}
     ]
   },
   {
-    day:'Perşembe', theme:'Ters Perşembe',
+    day:'Perşembe', theme:'Odak Perşembesi',
     missions:[
-      {id:'thu-clean2', title:'Güçsüz Kahraman', desc:'Güç kullanmadan 2 bölüm kazan.', stat:'cleanWins', target:2, reward:170, icon:'🦸'},
-      {id:'thu-pause1', title:'Nefes Al', desc:'Oyunu 1 kez durdur ve sakin dön.', stat:'pauseUses', target:1, reward:60, icon:'⏸️'},
-      {id:'thu-wins4', title:'Dört Bardaklık Akıl', desc:'Bugün 4 bölüm doğru bil.', stat:'wins', target:4, reward:110, icon:'🧠'}
+      {id:'thu-combo10', title:'Onluk Dikkat', desc:'10 kombo yap.', stat:'maxCombo', target:10, reward:125, icon:'🔥'},
+      {id:'thu-pause1', title:'Nefes Al', desc:'Oyunu 1 kez durdur ve sakin dön.', stat:'pauseUses', target:1, reward:45, icon:'⏸️'},
+      {id:'thu-novar3', title:'Kendi Gözünle', desc:'VAR kullanmadan 3 bölüm geç.', stat:'noVarWins', target:3, reward:75, icon:'👀'}
     ]
   },
   {
-    day:'Cuma', theme:'Finale Hazır Cuma',
+    day:'Cuma', theme:'Cuma Serisi',
     missions:[
-      {id:'fri-combo6', title:'Cuma Serisi', desc:'En az 6x kombo gör.', stat:'maxCombo', target:6, reward:190, icon:'⚡'},
-      {id:'fri-hint2', title:'İki Işık Bir Şüphe', desc:'2 kez ipucu kullan.', stat:'hintUses', target:2, reward:130, icon:'💡'},
-      {id:'fri-wins6', title:'Altın Cuma', desc:'Bugün 6 bölüm geç.', stat:'wins', target:6, reward:180, icon:'🪙'}
+      {id:'fri-wins6', title:'Altı Bardaklık Akıl', desc:'Bugün 6 bölüm kazan.', stat:'wins', target:6, reward:100, icon:'🧠'},
+      {id:'fri-sport3', title:'Tribün Modu', desc:'Spor topuyla 3 tur kazan.', stat:'sportBallWins', target:3, reward:90, icon:'🏟️'},
+      {id:'fri-hint2', title:'İki Işık Bir Şüphe', desc:'2 kez ipucu kullan.', stat:'hintUses', target:2, reward:55, icon:'💡'}
     ]
   },
   {
     day:'Cumartesi', theme:'Kupa Cumartesi',
     missions:[
-      {id:'sat-var2', title:'VAR Odası', desc:'2 kez VAR incelemesi aç.', stat:'varUses', target:2, reward:150, icon:'📹'},
-      {id:'sat-elim3', title:'Üç Şüpheliyi Ele', desc:'3 kez eleme gücü kullan.', stat:'eliminateUses', target:3, reward:165, icon:'🎯'},
-      {id:'sat-clean3', title:'Gösterişsiz Usta', desc:'Güç kullanmadan 3 bölüm kazan.', stat:'cleanWins', target:3, reward:220, icon:'🏆'}
+      {id:'sat-clean3', title:'Gösterişsiz Usta', desc:'Güç kullanmadan 3 bölüm kazan.', stat:'cleanWins', target:3, reward:105, icon:'🏆'},
+      {id:'sat-var1', title:'Bir Kez Bak Yeter', desc:'Sadece 1 VAR incelemesi aç.', stat:'varUses', target:1, reward:50, icon:'📹'},
+      {id:'sat-comeback1', title:'Kupa Dönüşü', desc:'2 hatadan sonra 1 bölüm kazan.', stat:'comebackWins', target:1, reward:100, icon:'🔁'}
     ]
   },
   {
-    day:'Pazar', theme:'Tembel Pazar Ama Zor',
+    day:'Pazar', theme:'Pazar Finali',
     missions:[
-      {id:'sun-wins7', title:'Yedi Bardak Pazar', desc:'Pazar günü 7 bölüm geç.', stat:'wins', target:7, reward:230, icon:'🧩'},
-      {id:'sun-combo7', title:'Uğurlu 7 Kombo', desc:'En az 7x kombo gör.', stat:'maxCombo', target:7, reward:260, icon:'🔥'},
-      {id:'sun-timeout1', title:'Son Saniye Dersi', desc:'1 kez süreyi bitir; sonra toparlan.', stat:'timeouts', target:1, reward:75, icon:'⏰'}
+      {id:'sun-combo10', title:'Pazar Ateşi', desc:'10 kombo yap.', stat:'maxCombo', target:10, reward:125, icon:'🔥'},
+      {id:'sun-nohint3', title:'Sessiz Final', desc:'3 tur üst üste ipucu kullanmadan kazan.', stat:'noHintBest', target:3, reward:90, icon:'🌙'},
+      {id:'sun-timeout1', title:'Son Saniye Dersi', desc:'1 kez süreyi bitir; sonra toparlan.', stat:'timeouts', target:1, reward:45, icon:'⏰'}
     ]
   }
 ];
 function currentMissionSet(){ return WEEKLY_MISSION_SETS[missionDayIndex()] || WEEKLY_MISSION_SETS[0]; }
+function escapeHtml(value){
+  return String(value||'').replace(/[&<>"']/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
+}
+// Local/mock lig: ileride Firebase sıralamasına bağlanacak yüzey burada ayrık tutuluyor.
+function weekStartStr(date=new Date()){
+  const d=new Date(date.getFullYear(),date.getMonth(),date.getDate());
+  d.setDate(d.getDate()-((d.getDay()+6)%7));
+  return d.getFullYear()+'-'+(d.getMonth()+1)+'-'+d.getDate();
+}
+const MOCK_LEAGUE_RIVALS=[
+  {name:'Ada', badge:'🎯', base:520},
+  {name:'Mert', badge:'⚽', base:470},
+  {name:'Deniz', badge:'🔥', base:420},
+  {name:'Ece', badge:'💎', base:360},
+  {name:'Kaan', badge:'🏁', base:310},
+  {name:'Lina', badge:'🧠', base:260}
+];
+function leagueSeed(key){ return String(key||'').split('').reduce((a,ch)=>a+ch.charCodeAt(0),0); }
+function mockLeagueRivalsFor(key){
+  const seed=leagueSeed(key);
+  return MOCK_LEAGUE_RIVALS.map((r,i)=>({
+    name:r.name,
+    badge:r.badge,
+    score:r.base + ((seed*(i+3))%140) - i*12
+  }));
+}
+function ensureWeeklyLeague(){
+  const key=weekStartStr();
+  if(!S.weeklyLeague || S.weeklyLeague.weekKey!==key){
+    S.weeklyLeague={weekKey:key, score:0, rivals:mockLeagueRivalsFor(key)};
+  }
+  if(!Array.isArray(S.weeklyLeague.rivals)) S.weeklyLeague.rivals=mockLeagueRivalsFor(key);
+  S.weeklyLeague.score=Math.max(0,Number(S.weeklyLeague.score)||0);
+  return S.weeklyLeague;
+}
+function leagueScoreForWin(clean=false){
+  const zoneBonus=Math.floor((Math.max(1,Math.min(level,MAX_CLASSIC_LEVEL))-1)/10)*3;
+  return 10 + zoneBonus + Math.min(10,streak||0) + (clean?3:0);
+}
+function addWeeklyLeagueScore(points){
+  const league=ensureWeeklyLeague();
+  league.score=Math.max(0,(Number(league.score)||0)+Math.max(0,Number(points)||0));
+}
+function weeklyLeagueRows(){
+  const league=ensureWeeklyLeague();
+  const rows=[
+    {name:S.playerName||'Sen', badge:S.weeklyBadge||'⭐', score:league.score, player:true},
+    ...league.rivals.map(r=>({...r, player:false}))
+  ];
+  return rows.sort((a,b)=>b.score-a.score || (a.player?-1:1));
+}
+function leagueRewardForRank(rank){
+  if(rank===1) return '1. sıra: Altın rozet +75 🪙';
+  if(rank<=3) return 'İlk 3: Gümüş rozet +40 🪙';
+  return 'Katılım: küçük rozet +15 🪙';
+}
+function renderWeeklyLeague(){
+  const board=$('league-board'); if(!board) return;
+  const league=ensureWeeklyLeague();
+  const rows=weeklyLeagueRows();
+  const rank=Math.max(1,rows.findIndex(r=>r.player)+1);
+  const note=$('league-week-note');
+  if(note) note.textContent='Hafta başlangıcı: '+league.weekKey+' • local/mock lig';
+  const summary=$('league-summary');
+  if(summary) summary.innerHTML='<div class="league-score-pill">Puan: <b>'+league.score+'</b></div><div class="league-score-pill">Sıra: <b>#'+rank+'</b></div>';
+  board.innerHTML=rows.map((r,i)=>
+    '<div class="league-row '+(r.player?'player':'')+'"><span class="league-rank">#'+(i+1)+'</span><span class="league-avatar">'+r.badge+'</span><span class="league-name">'+escapeHtml(r.name)+'</span><span class="league-score">'+r.score+'</span></div>'
+  ).join('');
+  const reward=$('league-reward');
+  if(reward) reward.textContent=leagueRewardForRank(rank);
+}
 function ensureDailyStats(){
   const t=todayStr();
   const set=currentMissionSet();
   if(!S.dailyStats || S.dailyStats.date!==t || S.dailyStats.weekDay!==set.day){
-    S.dailyStats={date:t,weekDay:set.day,wins:0,maxCombo:0,cleanWins:0,hintUses:0,eliminateUses:0,varUses:0,failures:0,timeouts:0,pauseUses:0,claimed:{}};
+    S.dailyStats={date:t,weekDay:set.day,wins:0,maxCombo:0,cleanWins:0,noHintStreak:0,noHintBest:0,noVarWins:0,comebackWins:0,sportBallWins:0,hintUses:0,eliminateUses:0,varUses:0,failures:0,timeouts:0,pauseUses:0,claimed:{}};
   }
-  ['wins','maxCombo','cleanWins','hintUses','eliminateUses','varUses','failures','timeouts','pauseUses'].forEach(k=>{ if(typeof S.dailyStats[k]!=='number') S.dailyStats[k]=0; });
+  ['wins','maxCombo','cleanWins','noHintStreak','noHintBest','noVarWins','comebackWins','sportBallWins','hintUses','eliminateUses','varUses','failures','timeouts','pauseUses'].forEach(k=>{ if(typeof S.dailyStats[k]!=='number') S.dailyStats[k]=0; });
   if(!S.dailyStats.claimed) S.dailyStats.claimed={};
   return S.dailyStats;
 }
@@ -593,16 +743,28 @@ function todaysMissions(){ return currentMissionSet().missions; }
 async function trackDailyStat(stat,amount=1){
   const d=ensureDailyStats();
   d[stat]=(Number(d[stat])||0)+amount;
+  if(stat==='failures' || stat==='timeouts') d.noHintStreak=0;
   await saveState();
   if(currentScreenId==='screen-missions') renderMissions();
 }
-async function recordDailyWin(clean=false){
+async function recordDailyWin(clean=false, opts={}){
   const d=ensureDailyStats();
   d.wins=(d.wins||0)+1;
   d.maxCombo=Math.max(d.maxCombo||0,streak||0);
   if(clean) d.cleanWins=(d.cleanWins||0)+1;
+  if(opts.noHintWin){
+    d.noHintStreak=(d.noHintStreak||0)+1;
+    d.noHintBest=Math.max(d.noHintBest||0,d.noHintStreak);
+  }else{
+    d.noHintStreak=0;
+  }
+  if(opts.noVarWin) d.noVarWins=(d.noVarWins||0)+1;
+  if(opts.comebackWin) d.comebackWins=(d.comebackWins||0)+1;
+  if(opts.sportBallWin) d.sportBallWins=(d.sportBallWins||0)+1;
+  addWeeklyLeagueScore(leagueScoreForWin(clean));
   await saveState();
   if(currentScreenId==='screen-missions') renderMissions();
+  if(currentScreenId==='screen-league') renderWeeklyLeague();
 }
 function missionProgress(m){
   const d=ensureDailyStats();
@@ -675,6 +837,7 @@ async function startGameAt(lv){
   isPaused=false; stopAllGameAudio();
   mode='classic'; level=Math.max(1,Math.min(Number(lv)||1,MAX_CLASSIC_LEVEL)); lives=MAX_LIVES; streak=0; adUsedThisRun=false; failuresSinceAd=0;
   playSessionStartedAt=Date.now(); consecutiveLifeLosses=0; longPlayRestTriggeredThisRun=false;
+  resetRunPerkState();
   showScreen('screen-game');
   requestGameFullscreen();
   await saveRunState();
@@ -696,8 +859,8 @@ function updateHUD(){
   const set=levelSettings(level);
   const extras=[];
   if(set.feints)extras.push('sahte hamle');
-  if(set.colors)extras.push('renk değişimi');
-  if(set.invis)extras.push('görünmezlik');
+  if(set.colors)extras.push('yakın renkler');
+  if(set.invis)extras.push('ışık/gölge');
   $('level-info').textContent=(mode==='endless'?'♾️ Sonsuz • Tur ':'Bölüm ')+level+(mode==='classic'?'/'+MAX_CLASSIC_LEVEL:'')+' • '+set.cupCount+' bardak'+(extras.length?' • ⚠️ '+extras.join(', '):'');
 }
 
@@ -724,8 +887,8 @@ function cupStyleForLevel(baseSkin,index,count,lv){
 
   // Grup içinde yakınlaşma: ilk bölüm net, 10. bölümde çok daha benzer.
   // Final kırmızı grubunda yakınlık daha serttir.
-  const startSpread = group.name==='kırmızı' ? 20 : group.name==='mor' ? 26 : 42;
-  const endSpread   = group.name==='kırmızı' ? 3.2 : group.name==='mor' ? 6.0 : 9.0;
+  const startSpread = group.name==='kırmızı' ? 22 : group.name==='mor' ? 28 : 42;
+  const endSpread   = group.name==='kırmızı' ? 5.4 : group.name==='mor' ? 7.2 : 10.0;
   const spread=startSpread + (endSpread-startSpread)*inGroup;
 
   const mid=(count-1)/2;
@@ -740,8 +903,14 @@ function cupStyleForLevel(baseSkin,index,count,lv){
   const l2=Math.round(group.l + lightOffset);
   const l1=Math.round(Math.min(78,l2+13-inGroup*4));
   const l3=Math.round(Math.max(22,l2-16+inGroup*5));
+  let body=`linear-gradient(180deg,hsl(${hue}, ${sat}%, ${l1}%),hsl(${hue}, ${sat}%, ${l2}%) 55%,hsl(${hue}, ${sat}%, ${l3}%))`;
+  if(group.name==='mor'){
+    body=`linear-gradient(115deg,rgba(255,255,255,.20),transparent 34%,rgba(0,0,0,.18) 68%,transparent),${body}`;
+  }else if(group.name==='kırmızı'){
+    body=`linear-gradient(100deg,rgba(255,255,255,.13),transparent 38%,rgba(0,0,0,.16) 74%),${body}`;
+  }
   return {
-    body:`linear-gradient(180deg,hsl(${hue}, ${sat}%, ${l1}%),hsl(${hue}, ${sat}%, ${l2}%) 55%,hsl(${hue}, ${sat}%, ${l3}%))`,
+    body,
     rim:`hsl(${hue}, ${sat}%, ${Math.max(18,l3-8)}%)`
   };
 }
@@ -777,7 +946,10 @@ function buildCups(count){
   cups.forEach(c=>c.el.remove()); cups=[];
   const W=table.clientWidth;
   const gap=10;
-  const cw=Math.min(Math.floor((W-20)/count)-gap, 108);
+  const set=levelSettings(level);
+  let cw=Math.min(Math.floor((W-20)/count)-gap, 108);
+  if(set.zone==='green') cw=Math.floor(cw*.88);
+  if(set.zone==='red') cw=Math.floor(cw*.94);
   const ch=Math.round(cw*1.18);
   const totalW=count*cw+(count-1)*gap;
   const startX=(W-totalW)/2;
@@ -786,7 +958,7 @@ function buildCups(count){
   const skin=CUP_SKINS.find(s=>s.id===S.cupSkin)||CUP_SKINS[0];
   for(let i=0;i<count;i++){
     const el=document.createElement('div');
-    el.className='cup';
+    el.className='cup cup-zone-'+(set.zone||levelThemeFor(level).id);
     el.style.width=cw+'px';el.style.height=ch+'px';
     const visual=cupStyleForLevel(skin,i,count,level);
     el.innerHTML='<div class="body" style="background:'+visual.body+'"></div><div class="rim" style="background:'+visual.rim+'"></div>';
@@ -848,9 +1020,10 @@ function swapCups(a,b,dur,feint=false){
     // V20: kontrollü zor hareket. Bardaklar okunabilir hızda gider;
     // biri hafif yukarı, diğeri hafif aşağı salınır. Aşırı zıplama yok.
     const direction = ((a.slot + b.slot + Math.floor(level/2)) % 2 === 0) ? 1 : -1;
-    const aPeak = direction * (8 + d*10);
-    const bPeak = -direction * (8 + d*10);
-    const wobblePower = 1.4 + d*2.8;
+    const steady=(activeRoundPerks&&activeRoundPerks.steadyFactor)||1;
+    const aPeak = direction * (8 + d*10) * steady;
+    const bPeak = -direction * (8 + d*10) * steady;
+    const wobblePower = (1.4 + d*2.8) * steady;
 
     a.el.style.zIndex=8;
     b.el.style.zIndex=7;
@@ -890,7 +1063,8 @@ function swapCups(a,b,dur,feint=false){
 function bobCup(cup,dur=260){
   return new Promise(res=>{
     hideBallDuringShuffle();
-    const peak=(Math.random()<0.5?-1:1)*(6+Math.random()*(6+difficultyRatio()*10));
+    const steady=(activeRoundPerks&&activeRoundPerks.steadyFactor)||1;
+    const peak=(Math.random()<0.5?-1:1)*(6+Math.random()*(6+difficultyRatio()*10))*steady;
     let t0=performance.now(), pauseAt=0;
     const baseX=slotPositions[cup.slot] ?? cup.x;
     cup.x=baseX;
@@ -982,10 +1156,12 @@ async function maybeForceRestAfterLifeLoss(){
 async function handleTimeout(){
   if(!guessing||busy)return;
   guessing=false;busy=true;stopChoiceTimer();setHelperButtons(false);clearFx();
-  streak=0; haptic(80); sndLose();
+  const shieldedCombo=useComboShieldIfReady();
+  if(!shieldedCombo) streak=0;
+  haptic(80); sndLose();
   await trackDailyStat('failures',1);
   await trackDailyStat('timeouts',1);
-  $('status-msg').textContent='⏰ Süre bitti!';
+  $('status-msg').textContent='⏰ Süre bitti!'+(shieldedCombo?' 🛡️ Kombo korundu!':'');
   await wait(450);
   placeBallAt(ballCup);
   await liftCup(ballCup,true);
@@ -1099,6 +1275,7 @@ async function startRound(){
   stopChoiceTimer(); resetTimerBar();
   hideVarrButton();
   busy=true; guessing=false; hintUsedThisRound=false; eliminateUsedThisRound=false; varrUsedThisRound=false;
+  activeRoundPerks=activeSkinPerks(level);
   updateHUD();
   await saveRunState();
   const set=levelSettings(level);
@@ -1111,7 +1288,9 @@ async function startRound(){
   await wait(500);
   placeBallAt(ballCup);
   await liftCup(ballCup,true);
-  await wait(650);
+  if(activeRoundPerks.xrayMs){ $('ball').classList.add('xray-ball'); }
+  await wait(650 + activeRoundPerks.xrayMs);
+  $('ball').classList.remove('xray-ball');
   await liftCup(ballCup,false);
   hideBall();
   hideBallDuringShuffle();
@@ -1121,18 +1300,19 @@ async function startRound(){
   for(let k=0;k<set.swaps;k++){
     let i=rand(cups.length), j=rand(cups.length);
     while(j===i) j=rand(cups.length);
-    const feint = set.feints && Math.random() < (set.finalZone ? 0.28 : 0.18);
-    if(set.invis && Math.random()<0.25){
+    const feint = set.feints && Math.random() < (set.feintChance || .16);
+    if(set.invis && Math.random()<(set.ghostChance || 0)){
       cups[i].el.classList.add('ghost');cups[j].el.classList.add('ghost');
     }
-    if(set.colors && Math.random()<0.3){ randomHue(cups[rand(cups.length)]); }
+    if(set.colors && Math.random()<(set.colorChance || .22)){ randomHue(cups[rand(cups.length)]); }
     if(currentRoundRecord){ currentRoundRecord.swaps.push({i,j,feint:!!feint}); }
-    await swapCups(cups[i],cups[j],set.dur,feint);
+    const moveDur=set.dur * (k<2 ? activeRoundPerks.slowStartFactor : 1);
+    await swapCups(cups[i],cups[j],moveDur,feint);
     cups[i].el.classList.remove('ghost');cups[j].el.classList.remove('ghost');
 
     // V20: sahte hareketler artık aynı anda kaos yaratmıyor;
     // yavaş ve kontrollü şekilde araya giriyor.
-    if(level>=8 && k%3===1 && Math.random() < Math.min(0.28,0.08+difficultyRatio()*0.20)){
+    if(level>=8 && k%3===1 && Math.random() < (set.bobChance || 0)){
       const decoys=cups.filter((_,idx)=>idx!==i && idx!==j);
       if(decoys.length) await bobCup(decoys[rand(decoys.length)], Math.max(150,set.dur*0.55));
     }
@@ -1162,6 +1342,7 @@ async function onCupTap(cup){
   if(cup===ballCup){
     placeBallAt(cup);
     await liftCup(cup,true);
+    const comebackWin = consecutiveLifeLosses>=2;
     consecutiveLifeLosses=0;
     streak++;
     let lifeRewardText='';
@@ -1186,19 +1367,21 @@ async function onCupTap(cup){
       baseReward=ELIMINATE_REWARD;
       helperRewardText=' • 🎯 elemeli ödül';
     }
+    const skinPerks=activeSkinPerks(level);
+    const skinCoinBonus=skinPerks.coinBoost||0;
     const comboBonus=comboBonusFor(streak);
-    const reward=baseReward+comboBonus+lifeCoinBonus;
+    const reward=baseReward+comboBonus+lifeCoinBonus+skinCoinBonus;
     S.coins+=reward;
     S.bestCombo=Math.max(S.bestCombo||0,streak);
     if(mode==='classic') S.bestLevel=Math.max(S.bestLevel,level);
     else S.bestEndless=Math.max(S.bestEndless,level);
     const cleanWin = !hintUsedThisRound && !eliminateUsedThisRound && !varrUsedThisRound;
-    await recordDailyWin(cleanWin);
+    await recordDailyWin(cleanWin,{noHintWin:!hintUsedThisRound,noVarWin:!varrUsedThisRound,comebackWin,sportBallWin:isSportBallActive()});
     await saveState();
     sndWin();sndCoin(); if(streak>=3) sndCombo(); confetti();
     const r=cup.el.getBoundingClientRect();
     floatCoin('+'+reward+' 🪙', r.left+r.width/2-30, r.top-10);
-    const comboText = helperRewardText + (comboBonus ? ' • 🔥 '+streak+'x kombo +'+comboBonus : '') + lifeRewardText;
+    const comboText = helperRewardText + (comboBonus ? ' • 🔥 '+streak+'x kombo +'+comboBonus : '') + (skinCoinBonus ? ' • 🎨 skin +'+skinCoinBonus : '') + lifeRewardText;
     $('status-msg').textContent='🎉 Doğru! +'+reward+' 🪙'+comboText;
     $('combo-label').parentElement.classList.add('combo-burst');
     setTimeout(()=>$('combo-label').parentElement.classList.remove('combo-burst'),300);
@@ -1226,7 +1409,8 @@ async function onCupTap(cup){
     await wait(500);
     placeBallAt(ballCup);
     await liftCup(ballCup,true);      // doğrusunu göster
-    streak=0;
+    const shieldedCombo=useComboShieldIfReady();
+    if(!shieldedCombo) streak=0;
     lives--;
     consecutiveLifeLosses++;
     lastRoundRecord=cloneRoundRecord(currentRoundRecord);
@@ -1234,6 +1418,7 @@ async function onCupTap(cup){
       lastRoundRecord.selectedSlot = cup.slot;
       lastRoundRecord.selectedIndex = cups.indexOf(cup);
     }
+    if(shieldedCombo) $('status-msg').textContent+=' 🛡️ Kombo korundu!';
     updateHUD();
     await saveRunState();
     await wait(900);
@@ -1302,6 +1487,7 @@ async function startGame(m){
   isPaused=false; stopAllGameAudio();
   mode=m; level=1; lives=MAX_LIVES; streak=0; adUsedThisRun=false; failuresSinceAd=0;
   playSessionStartedAt=Date.now(); consecutiveLifeLosses=0; longPlayRestTriggeredThisRun=false;
+  resetRunPerkState();
   showScreen('screen-game');
   requestGameFullscreen();
   await saveRunState();
@@ -1329,7 +1515,7 @@ function createHintLightForCup(cup,asDecoy=false){
   light.style.left=(cup.x+cup.w/2)+'px';
   light.style.width=Math.max(74, Math.min(112, cup.w*1.18))+'px';
   $('table').appendChild(light);
-  setTimeout(()=>light.remove(),1550);
+  setTimeout(()=>light.remove(),1550 + activeSkinPerks(level).focusMs);
   return light;
 }
 function getRegionalHintCups(){
@@ -1352,7 +1538,7 @@ $('btn-hint').addEventListener('click',async ()=>{
   $('status-msg').textContent='💡 İpucu: Işıklı bölgelerden biri olabilir!';
   const regional=getRegionalHintCups();
   regional.forEach(c=>createHintLightForCup(c,c!==ballCup));
-  await wait(1500);
+  await wait(1500 + activeSkinPerks(level).focusMs);
   removeHintLights();
   if(guessing) $('status-msg').textContent='❓ Top nerede?';
 });
@@ -1413,33 +1599,38 @@ function renderShop(){
     const card=document.createElement('div');
     const isOwned=owned.includes(sk.id);
     const isSelected=selected===sk.id;
-    card.className='skin-card shop-card '+shopTab+'-card'+(isSelected?' selected':'')+(isOwned?' owned':' locked');
+    const tier=(sk.tier||'common');
+    card.className='skin-card shop-card '+shopTab+'-card tier-'+tier+(isSelected?' selected':'')+(isOwned?' owned':' locked');
     card.dataset.id=sk.id;
     card.dataset.owned=isOwned?'true':'false';
     card.dataset.selected=isSelected?'true':'false';
-    card.tabIndex=isOwned&&!isSelected?0:-1;
-    card.setAttribute('role',isOwned&&!isSelected?'button':'group');
+    card.tabIndex=isOwned?0:-1;
+    card.setAttribute('role',isOwned?'button':'group');
     card.setAttribute('aria-label',sk.name+(isSelected?' seçili':isOwned?' seçilebilir':' satın alınabilir'));
     const icon = shopTab==='ball' && sk.icon ? '<span class="skin-sport-icon">'+sk.icon+'</span>' : '';
     const prev = shopTab==='cup'
       ? '<div class="skin-preview-frame"><div class="skin-preview-cup" style="background:'+sk.css+'"></div></div>'
       : '<div class="skin-preview-frame ball-frame"><div class="skin-preview-ball" style="background:'+sk.css+'"></div>'+icon+'</div>';
     const status = isSelected ? 'Seçili' : isOwned ? 'Sahip olduğun ürün' : 'Kilitli ürün';
+    const perkLine=perkTextFor(sk);
+    const desc = shopTab==='cup' ? 'İlk 10 bölümde bardak olarak görünür' : 'İlk 10 bölümde top olarak kullanılır';
     let btn;
     if(isSelected){
-      btn='<button class="btn skin-btn equipped" disabled>✔ Kullanılıyor</button>';
+      btn='<button class="btn skin-btn equipped" data-act="select" data-id="'+sk.id+'">✔ Kullanılıyor</button>';
     }else if(isOwned){
       btn='<button class="btn skin-btn secondary select-btn" data-act="select" data-id="'+sk.id+'">Seç</button>';
     }else{
       btn='<button class="btn skin-btn buy" data-act="buy" data-id="'+sk.id+'"><span>Satın Al</span><b>'+sk.price+' 🪙</b></button>';
     }
     card.innerHTML='\
-      <div class="skin-card-head"><div class="skin-badge">'+(sk.tag||'Skin')+'</div><div class="skin-owned-mark">'+(isSelected?'✓':isOwned?'•':'🔒')+'</div></div>\
+      <div class="skin-card-head"><div class="skin-badge">'+tierLabelFor(sk)+'</div><div class="skin-owned-mark">'+(isSelected?'✓':isOwned?'•':'🔒')+'</div></div>\
       '+prev+'\
       <div class="skin-info">\
         <div class="skin-name">'+sk.name+'</div>\
-        <div class="skin-desc">'+(shopTab==='cup'?'İlk 10 bölümde bardak olarak görünür':'İlk 10 bölümde top olarak kullanılır')+'</div>\
+        <div class="skin-desc">'+desc+'</div>\
+        <div class="skin-perk">'+perkLine+'</div>\
       </div>\
+      <div class="skin-tag-row">'+(sk.tag||'Skin')+'</div>\
       <div class="skin-price-row '+(isOwned?'owned-row':'')+'">'+(isOwned?status:'Fiyat: '+sk.price+' 🪙')+'</div>\
       '+btn;
     grid.appendChild(card);
@@ -1470,12 +1661,12 @@ $('shop-grid').addEventListener('click',async e=>{
   const b=e.target.closest('button[data-act]');
   if(b){ await applyShopAction(b.dataset.id,b.dataset.act); return; }
   const card=e.target.closest('.shop-card[data-owned="true"]');
-  if(card && card.dataset.selected!=='true') await applyShopAction(card.dataset.id,'select');
+  if(card) await applyShopAction(card.dataset.id,'select');
 });
 $('shop-grid').addEventListener('keydown',async e=>{
   if(e.key!=='Enter' && e.key!==' ') return;
   const card=e.target.closest('.shop-card[data-owned="true"]');
-  if(card && card.dataset.selected!=='true'){ e.preventDefault(); await applyShopAction(card.dataset.id,'select'); }
+  if(card){ e.preventDefault(); await applyShopAction(card.dataset.id,'select'); }
 });
 document.querySelectorAll('.tab').forEach(t=>t.addEventListener('click',()=>{
   document.querySelectorAll('.tab').forEach(x=>x.classList.remove('active'));
@@ -1527,6 +1718,8 @@ $('btn-levels-back').addEventListener('click',()=>{refreshMenu();showScreen('scr
 $('btn-missions').addEventListener('click',()=>{stopAllGameAudio();ensureDailyStats();renderMissions();showScreen('screen-missions');});
 $('btn-missions-back').addEventListener('click',()=>{refreshMenu();showScreen('screen-menu');});
 $('missions-list').addEventListener('click',e=>{ const b=e.target.closest('button[data-mission]'); if(b) claimMission(b.dataset.mission); });
+$('btn-league').addEventListener('click',()=>{stopAllGameAudio();ensureWeeklyLeague();renderWeeklyLeague();showScreen('screen-league');});
+$('btn-league-back').addEventListener('click',()=>{refreshMenu();showScreen('screen-menu');});
 $('btn-shop').addEventListener('click',()=>{stopAllGameAudio();showScreen('screen-shop');renderShop();});
 $('btn-shop-back').addEventListener('click',()=>{stopAllGameAudio();refreshMenu();showScreen('screen-menu');});
 $('btn-quit').addEventListener('click',async ()=>{isPaused=false;busy=false;guessing=false;stopChoiceTimer();stopAllGameAudio();await clearRunState();refreshMenu();showScreen('screen-menu');});
@@ -1545,6 +1738,7 @@ $('btn-resume-run').addEventListener('click',async ()=>{
   streak=Math.max(0,Number(run.streak)||0);
   failuresSinceAd=Math.max(0,Number(run.failuresSinceAd)||0);
   adUsedThisRun=!!run.adUsedThisRun;
+  comboShieldAvailable=typeof run.comboShieldAvailable==='boolean' ? run.comboShieldAvailable : !!activeSkinPerks(level).comboShield;
   playSessionStartedAt=Number(run.playSessionStartedAt)||Date.now();
   consecutiveLifeLosses=Math.max(0,Number(run.consecutiveLifeLosses)||0);
   longPlayRestTriggeredThisRun=!!run.longPlayRestTriggeredThisRun;
@@ -1610,6 +1804,7 @@ function primeAudioOnFirstGesture(){
 (async function init(){
   await loadState();
   ensureDailyStats();
+  ensureWeeklyLeague();
   applyLevelTheme(1);
   preloadFailSounds();
   updateAudioButtons();
