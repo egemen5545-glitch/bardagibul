@@ -79,6 +79,7 @@ const S = {
   ownedCups:['red'], ownedBalls:['orange'],
   cupSkin:'red', ballSkin:'orange',
   lastDaily:'', muted:false,
+  musicOn:true, sfxOn:true,
   bestCombo:0, campaignCompleted:false, playerName:'', dailyStats:null,
   starterCoinsGiven:false
 };
@@ -97,6 +98,9 @@ async function saveState(){ sanitizeState(); await store.set('bardagibul-save', 
 async function loadState(){
   const raw = await store.get('bardagibul-save');
   if(raw){ try{ Object.assign(S, JSON.parse(raw)); }catch(e){} }
+  // V21: eski "muted" ayarı yeni müzik/ses ayarlarına taşınır.
+  if(typeof S.sfxOn!=='boolean') S.sfxOn = !S.muted;
+  if(typeof S.musicOn!=='boolean') S.musicOn = true;
   sanitizeState();
   // V17: her oyuncuya bir kere başlangıç hediyesi verilir.
   // Yeni oyuncu da, eski kayıtla gelen oyuncu da 50 altınlık başlangıç desteğini alır.
@@ -160,7 +164,9 @@ const FAIL_SFX=[
 ];
 const preloadedFailSfx=[];
 function soundAllowed(){
-  return !S.muted && !appIsBackgrounded && !document.hidden && currentScreenId==='screen-game' && !isPaused;
+  // V21: ses efektleri artık tüm ekranlarda çalabilir (market/görev altın sesi düzeltildi).
+  // Oyun ekranından çıkınca zamanlanmış sesler zaten stopAllGameAudio ile temizleniyor.
+  return S.sfxOn && !appIsBackgrounded && !document.hidden && !isPaused;
 }
 function scheduleSound(fn,delayMs){
   const id=setTimeout(()=>{ soundTimers.delete(id); if(soundAllowed()) fn(); }, delayMs);
@@ -176,7 +182,8 @@ function stopAllGameAudio(){
     try{ a.pause(); a.currentTime=0; }catch(e){}
   });
   activeMedia.clear();
-  try{ if(audioCtx && audioCtx.state==='running') audioCtx.suspend(); }catch(e){}
+  // V21: AudioContext artık burada askıya alınmıyor; fon müziği aynı context'te
+  // kesintisiz devam eder. Context yalnızca uygulama arka plana geçince askıya alınır.
 }
 function ensureAudio(){
   try{
@@ -263,6 +270,115 @@ function sndVarAlarm(){
 const sndCoin=()=>beep(1200,.08,'square',0.08);
 const sndCombo=()=>{beep(920,.08,'triangle',0.08);scheduleSound(()=>beep(1280,.1,'triangle',0.08),90);};
 
+/* ---------- V21: Sakinleştirici fon müziği ----------
+   Dış dosya yok; müzik Web Audio ile canlı üretilir (tamamen telifsiz).
+   Yumuşak akor pedleri (I–vi–IV–V) + seyrek pentatonik tınılar.
+   Menüde, oyunda ve duraklatma sırasında sakin sakin akmaya devam eder. */
+const MUSIC_CHORDS=[
+  [130.81,164.81,196.00,246.94], // Cmaj7
+  [110.00,164.81,196.00,261.63], // Am7
+  [ 87.31,130.81,174.61,220.00], // Fmaj
+  [ 98.00,146.83,196.00,246.94]  // Gmaj7
+];
+const MUSIC_PLUCK_NOTES=[523.25,587.33,659.25,783.99,880.00]; // C mj pentatonik
+const MUSIC_CHORD_SECONDS=8;
+let musicGain=null, musicPlaying=false, musicTimer=null;
+let musicNextChordAt=0, musicChordIndex=0, musicNextPluckAt=0;
+const musicNodes=new Set();
+
+function ensureMusicGain(ctx){
+  if(musicGain) return musicGain;
+  musicGain=ctx.createGain();
+  musicGain.gain.value=0.0001;
+  musicGain.connect(ctx.destination);
+  return musicGain;
+}
+function scheduleMusicChord(ctx,when){
+  const chord=MUSIC_CHORDS[musicChordIndex % MUSIC_CHORDS.length];
+  musicChordIndex++;
+  const dur=MUSIC_CHORD_SECONDS+3; // akorlar birbirine yumuşakça karışır
+  chord.forEach((freq,i)=>{
+    try{
+      const o=ctx.createOscillator(), g=ctx.createGain(), f=ctx.createBiquadFilter();
+      o.type=i===0?'sine':'triangle';
+      o.frequency.value=freq;
+      o.detune.value=(Math.random()*6-3);
+      f.type='lowpass'; f.frequency.value=820; f.Q.value=0.4;
+      const v=(i===0?0.052:0.034)/chord.length*4*0.5; // her ses çok kısık
+      g.gain.setValueAtTime(0.0001,when);
+      g.gain.linearRampToValueAtTime(v,when+2.6);           // yavaş nefes alma
+      g.gain.setValueAtTime(v,when+dur-3.2);
+      g.gain.linearRampToValueAtTime(0.0001,when+dur);      // yavaş bırakma
+      o.connect(f); f.connect(g); g.connect(ensureMusicGain(ctx));
+      musicNodes.add(o);
+      o.onended=()=>musicNodes.delete(o);
+      o.start(when); o.stop(when+dur+0.1);
+    }catch(e){}
+  });
+}
+function scheduleMusicPluck(ctx,when){
+  try{
+    const freq=MUSIC_PLUCK_NOTES[rand(MUSIC_PLUCK_NOTES.length)];
+    const o=ctx.createOscillator(), g=ctx.createGain(), f=ctx.createBiquadFilter();
+    o.type='sine'; o.frequency.value=freq; o.detune.value=(Math.random()*8-4);
+    f.type='lowpass'; f.frequency.value=2400;
+    const v=0.016+Math.random()*0.012;
+    g.gain.setValueAtTime(0.0001,when);
+    g.gain.exponentialRampToValueAtTime(v,when+0.04);
+    g.gain.exponentialRampToValueAtTime(0.0001,when+1.9);
+    o.connect(f); f.connect(g); g.connect(ensureMusicGain(ctx));
+    musicNodes.add(o);
+    o.onended=()=>musicNodes.delete(o);
+    o.start(when); o.stop(when+2.1);
+  }catch(e){}
+}
+function musicTick(){
+  if(!musicPlaying || !audioCtx) return;
+  if(audioCtx.state!=='running') return;
+  const now=audioCtx.currentTime;
+  if(musicNextChordAt < now) musicNextChordAt = now + 0.15;
+  while(musicNextChordAt < now + 1.2){
+    scheduleMusicChord(audioCtx, musicNextChordAt);
+    musicNextChordAt += MUSIC_CHORD_SECONDS;
+  }
+  if(musicNextPluckAt < now) musicNextPluckAt = now + 1.5 + Math.random()*2;
+  while(musicNextPluckAt < now + 1.2){
+    if(Math.random()<0.82) scheduleMusicPluck(audioCtx, musicNextPluckAt);
+    musicNextPluckAt += 2.2 + Math.random()*3.4;
+  }
+}
+function startMusic(){
+  if(!S.musicOn || musicPlaying) return;
+  const ctx=ensureAudio(); if(!ctx) return;
+  musicPlaying=true;
+  const g=ensureMusicGain(ctx);
+  try{
+    g.gain.cancelScheduledValues(ctx.currentTime);
+    g.gain.setValueAtTime(Math.max(0.0001,g.gain.value),ctx.currentTime);
+    g.gain.linearRampToValueAtTime(0.9,ctx.currentTime+1.8); // yumuşak giriş
+  }catch(e){}
+  musicNextChordAt=0; musicNextPluckAt=0;
+  musicTick();
+  if(!musicTimer) musicTimer=setInterval(musicTick,400);
+}
+function stopMusic(){
+  musicPlaying=false;
+  if(musicTimer){ clearInterval(musicTimer); musicTimer=null; }
+  if(audioCtx && musicGain){
+    try{
+      const t=audioCtx.currentTime;
+      musicGain.gain.cancelScheduledValues(t);
+      musicGain.gain.setValueAtTime(Math.max(0.0001,musicGain.gain.value),t);
+      musicGain.gain.linearRampToValueAtTime(0.0001,t+0.8); // yumuşak çıkış
+    }catch(e){}
+  }
+  setTimeout(()=>{
+    if(musicPlaying) return;
+    musicNodes.forEach(o=>{ try{o.stop(0);}catch(e){} });
+    musicNodes.clear();
+  },900);
+}
+
 /* ---------- Yardımcılar ---------- */
 const $=id=>document.getElementById(id);
 const wait=ms=>new Promise(res=>{
@@ -293,8 +409,12 @@ function suspendGameAudio(){
   if(currentScreenId==='screen-game') saveRunState();
   appIsBackgrounded=true;
   stopAllGameAudio();
+  try{ if(audioCtx && audioCtx.state==='running') audioCtx.suspend(); }catch(e){}
 }
-function resumeGameAudio(){ appIsBackgrounded=false; }
+function resumeGameAudio(){
+  appIsBackgrounded=false;
+  try{ if(audioCtx && audioCtx.state==='suspended' && (S.musicOn || S.sfxOn)) audioCtx.resume(); }catch(e){}
+}
 document.addEventListener('visibilitychange',()=>{
   if(document.hidden) suspendGameAudio();
   else resumeGameAudio();
@@ -900,7 +1020,7 @@ function waitForVarrOpportunity(timeoutMs=4200){
   hideVarrButton();
   if(!lastRoundRecord) return Promise.resolve(false);
   showVarrButton();
-  $('status-msg').textContent='📹 VAR incelemesi 150 altın. Yavaş çekimde izleyebilirsin!';
+  $('status-msg').textContent='📹 VAR incelemesi '+VAR_COST+' altın. Yavaş çekimde izleyebilirsin!';
   return new Promise(res=>{
     let done=false;
     varrOpportunityResolve=()=>{
@@ -1123,8 +1243,12 @@ async function onCupTap(cup){
     else{
       await maybePlayFailureAd();
       await maybeForceRestAfterLifeLoss();
-      await liftCup(cup,false).catch(()=>{});
-      await liftCup(ballCup,false).catch(()=>{});
+      // V21 düzeltme: VAR izlendiyse bardaklar zaten yeniden kurulur;
+      // eski (DOM'dan kopmuş) bardaklara animasyon yapıp boşa beklenmez.
+      if(!wantsVarr){
+        await liftCup(cup,false).catch(()=>{});
+        await liftCup(ballCup,false).catch(()=>{});
+      }
       hideBall();
       startRound();
     }
@@ -1150,10 +1274,7 @@ async function showRestCountdown(reason='rest'){
 async function playAdBreak(clearedLevelOrReason, opts={}){
   // Reklam entegrasyonu için kanca burada tutuluyor; şu an kullanıcıya reklam bildirimi gösterilmiyor.
   stopAllGameAudio();
-  const restAfter = opts.restAfter !== false;
-  if(!AD_NOTICES_ENABLED){
-    return;
-  }
+  if(!AD_NOTICES_ENABLED) return;
 }
 
 async function completeCampaign(){
@@ -1365,8 +1486,9 @@ document.querySelectorAll('.tab').forEach(t=>t.addEventListener('click',()=>{
 /* ---------- Durdurma modu ---------- */
 
 async function pauseGame(){
-  await trackDailyStat('pauseUses',1);
+  // V21 düzeltme: istatistik artık yalnızca geçerli bir duraklatmada sayılır.
   if(currentScreenId!=='screen-game' || pauseAdBusy || $('modal-gameover').classList.contains('show') || $('modal-complete').classList.contains('show')) return;
+  await trackDailyStat('pauseUses',1);
   isPaused=true;
   pauseAdBusy=true;
   await saveRunState();
@@ -1445,13 +1567,53 @@ $('btn-save-name').addEventListener('click',async ()=>{
 });
 $('player-name-input').addEventListener('keydown',e=>{ if(e.key==='Enter') $('btn-save-name').click(); });
 
+/* ---------- V21: Müzik / ses düğmeleri ---------- */
+function updateAudioButtons(){
+  ['btn-music','btn-music-top'].forEach(id=>{
+    const b=$(id); if(!b) return;
+    b.classList.toggle('off',!S.musicOn);
+    b.title=S.musicOn?'Müziği kapat':'Müziği aç';
+    b.setAttribute('aria-pressed',S.musicOn?'true':'false');
+  });
+  ['btn-sfx','btn-sfx-top'].forEach(id=>{
+    const b=$(id); if(!b) return;
+    b.textContent=S.sfxOn?'🔊':'🔇';
+    b.classList.toggle('off',!S.sfxOn);
+    b.title=S.sfxOn?'Ses efektlerini kapat':'Ses efektlerini aç';
+    b.setAttribute('aria-pressed',S.sfxOn?'true':'false');
+  });
+}
+async function toggleMusic(){
+  S.musicOn=!S.musicOn;
+  if(S.musicOn) startMusic(); else stopMusic();
+  updateAudioButtons();
+  await saveState();
+}
+async function toggleSfx(){
+  S.sfxOn=!S.sfxOn;
+  updateAudioButtons();
+  if(S.sfxOn) beep(880,.07,'triangle',0.07);
+  await saveState();
+}
+['btn-music','btn-music-top'].forEach(id=>{ const b=$(id); if(b) b.addEventListener('click',toggleMusic); });
+['btn-sfx','btn-sfx-top'].forEach(id=>{ const b=$(id); if(b) b.addEventListener('click',toggleSfx); });
+
+// Tarayıcılar sesi ilk kullanıcı dokunuşundan önce başlatmaz;
+// ilk dokunuşta müzik sessizce devreye girer.
+function primeAudioOnFirstGesture(){
+  const kick=()=>{ ensureAudio(); if(S.musicOn) startMusic(); };
+  ['pointerdown','touchstart','keydown'].forEach(ev=>
+    document.addEventListener(ev,kick,{once:true,passive:true}));
+}
+
 /* ---------- Başlat ---------- */
 (async function init(){
   await loadState();
   ensureDailyStats();
   applyLevelTheme(1);
-  S.muted=false;
   preloadFailSounds();
+  updateAudioButtons();
+  primeAudioOnFirstGesture();
   refreshMenu();
   if(!S.playerName){ showNameModal(); }
   else{ checkResumeOrDaily(); }

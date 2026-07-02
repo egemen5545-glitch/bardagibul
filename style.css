@@ -642,3 +642,32 @@ body.final-victory{animation:finalScreenFlash 1.6s ease-in-out 2}@keyframes fina
   .skin-desc{display:none!important}
   .skin-info{min-height:28px!important}
 }
+
+/* ---------- V21: sakinleştirici müzik + ses düğmeleri ---------- */
+.audio-toggle{
+  background:rgba(0,0,0,.38);
+  border:2px solid rgba(255,255,255,.14);
+  color:var(--cream);
+  border-radius:999px;
+  width:38px;height:38px;
+  font-size:16px;line-height:1;
+  cursor:pointer;pointer-events:auto;
+  box-shadow:0 4px 10px rgba(0,0,0,.18);
+  transition:transform .08s, opacity .15s, filter .15s;
+  display:inline-grid;place-items:center;
+  position:relative;
+}
+.audio-toggle:active{transform:translateY(2px)}
+.audio-toggle.off{opacity:.42;filter:grayscale(.9)}
+.audio-toggle.off::after{
+  content:"";
+  position:absolute;left:7px;right:7px;top:50%;
+  height:2.5px;border-radius:2px;
+  background:var(--red);
+  transform:rotate(-38deg);
+  box-shadow:0 0 4px rgba(0,0,0,.5);
+}
+#topbar .audio-toggle{width:36px;height:36px;font-size:15px}
+.settings-row{display:flex;gap:10px;margin-top:14px;justify-content:center}
+@media (max-width:560px){ #topbar .audio-toggle{width:34px;height:34px;font-size:14px} }
+@media (max-height:640px){ .settings-row{margin-top:8px} }
