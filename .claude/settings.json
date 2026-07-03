@@ -1,0 +1,9 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(node test-avatar.js)",
+      "Bash(node test-gamechat.js)",
+      "Bash(node test-mobile-chat.js)"
+    ]
+  }
+}

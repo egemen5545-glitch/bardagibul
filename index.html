@@ -44,15 +44,30 @@
     <div class="pill">🔥 En iyi kombo: <span id="best-combo">–</span></div>
     <div class="pill">🏁 Hikâye: <span id="campaign-progress">0/50</span></div>
   </div>
-  <button class="btn" id="btn-classic">▶️ Oyna</button>
-  <button class="btn secondary" id="btn-endless">♾️ Sonsuz Mod</button>
-  <button class="btn secondary" id="btn-friends">🤝 Arkadaşla Oyna</button>
-  <button class="btn secondary" id="btn-matchmaking">⚡ Online Maç</button>
-  <button class="btn secondary" id="btn-tournament">🏟️ Turnuva</button>
-  <button class="btn secondary" id="btn-levels">🗺️ Bölümler</button>
-  <button class="btn secondary" id="btn-missions">🎯 Haftalık Görevler</button>
-  <button class="btn secondary" id="btn-league">🏆 Haftalık Lig</button>
-  <button class="btn secondary" id="btn-shop">🎨 Market</button>
+  <div class="menu-group">
+    <div class="menu-group-title">Oyna</div>
+    <button class="btn" id="btn-classic">▶️ Oyna</button>
+    <div class="menu-group-row">
+      <button class="btn secondary" id="btn-endless">♾️ Sonsuz Mod</button>
+      <button class="btn secondary" id="btn-levels">🗺️ Bölümler</button>
+    </div>
+  </div>
+  <div class="menu-group">
+    <div class="menu-group-title">Online</div>
+    <button class="btn secondary" id="btn-friends">🤝 Arkadaşla Oyna</button>
+    <div class="menu-group-row">
+      <button class="btn secondary" id="btn-matchmaking">⚡ Online Maç</button>
+      <button class="btn secondary" id="btn-tournament">🏟️ Turnuva</button>
+    </div>
+  </div>
+  <div class="menu-group">
+    <div class="menu-group-title">İlerleme</div>
+    <button class="btn secondary" id="btn-shop">🎨 Market</button>
+    <div class="menu-group-row">
+      <button class="btn secondary" id="btn-missions">🎯 Haftalık Görevler</button>
+      <button class="btn secondary" id="btn-league">🏆 Haftalık Lig</button>
+    </div>
+  </div>
   <div class="settings-row" aria-label="Ses ayarları">
     <button id="btn-music" class="audio-toggle" title="Müzik">🎵</button>
     <button id="btn-sfx" class="audio-toggle" title="Ses efektleri">🔊</button>
@@ -66,6 +81,13 @@
   <div class="timer-wrap"><div id="timer-fill"></div></div>
   <div id="status-msg"></div>
   <div id="table-wrap"><div id="table"><div id="ball"></div></div></div>
+  <div id="game-chat" class="game-chat soft">
+    <div id="game-chat-list" class="chat-list game-chat-list"></div>
+    <div class="chat-compose game-chat-compose">
+      <input id="game-chat-input" class="online-input" type="text" maxlength="80" placeholder="Mesaj...">
+      <button class="btn small" id="btn-game-chat-send">➤</button>
+    </div>
+  </div>
   <div id="hint-row">
     <button class="btn small secondary" id="btn-hint">💡 İpucu (90 🪙)</button>
     <button class="btn small secondary" id="btn-eliminate">🎯 Ele (45 🪙)</button>
@@ -79,13 +101,6 @@
   <h1 class="logo page-logo">BÖLÜMLER</h1>
   <p class="tagline level-map-note">50 bölümlük yolu tamamla. Geçtiğin bölümler açılır, sıradaki bölüm parlayarak görünür.</p>
   <div id="level-map-summary" class="pill level-map-summary">İlerleme: 0/50</div>
-  <div class="zone-legend">
-    <span class="zone-chip zone-blue">1-10 Mavi Eğitim</span>
-    <span class="zone-chip zone-green">11-20 Yeşil Hız</span>
-    <span class="zone-chip zone-orange">21-30 Turuncu Yanıltma</span>
-    <span class="zone-chip zone-purple">31-40 Mor Dikkat</span>
-    <span class="zone-chip zone-red">41-50 Kırmızı Final</span>
-  </div>
   <div id="level-grid" class="level-grid"></div>
   <button class="btn small secondary" id="btn-levels-back" style="margin-top:10px">← Geri</button>
 </div>
@@ -146,6 +161,10 @@
       </div>
     </div>
     <div id="room-players" class="room-players"></div>
+    <div class="round-select-row">
+      <span class="round-select-label">Round sayısı</span>
+      <div class="tabs round-select" id="room-round-select"></div>
+    </div>
     <div class="room-actions main">
       <button class="btn small" id="btn-room-ready">Hazır Ol</button>
       <button class="btn small secondary" id="btn-room-start">Başlat</button>
@@ -240,10 +259,11 @@
 <!-- ======== FIRST NAME MODAL ======== -->
 <div class="modal-back" id="modal-name">
   <div class="modal name-modal">
-    <div class="big-emoji">👤</div>
+    <div class="big-emoji" id="name-avatar-preview">👤</div>
     <h2>Oyuncu Adın</h2>
-    <p>Sadece bir isim yaz. Rekorların ve ilerlemen bu isimle görünecek.</p>
+    <p>Bir isim ve avatar seç. Rekorların, ilerlemen ve online maçların bu profille görünecek.</p>
     <input id="player-name-input" class="name-input" type="text" maxlength="16" placeholder="Örn: Oyuncu" autocomplete="off">
+    <div class="emoji-row avatar-row" id="avatar-row"></div>
     <button class="btn small" id="btn-save-name">Başla</button>
   </div>
 </div>

@@ -111,7 +111,7 @@ const S = {
   cupSkin:'red', ballSkin:'orange',
   lastDaily:'', muted:false,
   musicOn:true, sfxOn:true,
-  bestCombo:0, campaignCompleted:false, playerName:'', dailyStats:null,
+  bestCombo:0, campaignCompleted:false, playerName:'', avatar:'⭐', dailyStats:null,
   starterCoinsGiven:false, weeklyLeague:null, weeklyBadge:'',
   elo:1000, online:null
 };
@@ -165,6 +165,7 @@ function ensureOnlineState(){
   return S.online;
 }
 function sanitizeState(){
+  if(!AVATAR_LIST.includes(S.avatar)) S.avatar=AVATAR_LIST[0];
   S.ownedCups = uniqueList(S.ownedCups);
   S.ownedBalls = uniqueList(S.ownedBalls);
   if(!S.ownedCups.includes('red')) S.ownedCups.unshift('red');
@@ -482,9 +483,17 @@ function updatePlayerWelcome(){
   const el=$('player-welcome');
   if(el) el.textContent = S.playerName ? 'Hoş geldin, '+S.playerName+'!' : 'Hoş geldin!';
 }
+let nameModalAvatarDraft='⭐';
+function renderAvatarRow(){
+  const row=$('avatar-row'); if(!row) return;
+  row.innerHTML=AVATAR_LIST.map(a=>'<button type="button" class="'+(a===nameModalAvatarDraft?'selected':'')+'" data-avatar="'+a+'">'+a+'</button>').join('');
+  const preview=$('name-avatar-preview'); if(preview) preview.textContent=nameModalAvatarDraft;
+}
 function showNameModal(){
   const input=$('player-name-input');
   if(input){ input.value=S.playerName||''; setTimeout(()=>input.focus(),160); }
+  nameModalAvatarDraft=onlineAvatar();
+  renderAvatarRow();
   modal('modal-name',true);
 }
 function suspendGameAudio(){
@@ -748,6 +757,7 @@ function renderWeeklyLeague(){
 /* ---------- Local/mock online servisleri ---------- */
 const MOCK_RIVAL_NAMES=['Ada','Mert','Deniz','Ece','Kaan','Lina','Arda','Mina','Atlas','Zeynep','Bora','Nehir'];
 const MOCK_CHAT_REPLIES=['Hazırım!','Güzel hamle.','Bu tur bende.','Kod çalıştı, geldim.','Bol şans!','Son bardağa dikkat.'];
+const AVATAR_LIST=['⭐','🦁','🐯','🎯','🔥','🐸','🦊','🐼','🎮','🚀','🍀','🐙','🦖','🥷'];
 const TOURNAMENT_TYPES={
   mini:{id:'mini',name:'Mini Kupa',entry:100,prize:160,badge:'🥉'},
   master:{id:'master',name:'Usta Kupa',entry:500,prize:850,badge:'🥈'},
@@ -755,10 +765,16 @@ const TOURNAMENT_TYPES={
 };
 let mockSearchTimer=null;
 function onlineName(){ return S.playerName || 'Sen'; }
+function onlineAvatar(){ return AVATAR_LIST.includes(S.avatar) ? S.avatar : AVATAR_LIST[0]; }
 function mockOpponentName(seed=''){
   const source=String(seed||Date.now());
   const idx=source.split('').reduce((a,ch)=>a+ch.charCodeAt(0),0)%MOCK_RIVAL_NAMES.length;
   return MOCK_RIVAL_NAMES[idx];
+}
+function mockOpponentAvatar(seed=''){
+  const source=String(seed||Date.now())+'a';
+  const idx=source.split('').reduce((a,ch)=>a+ch.charCodeAt(0),0)%AVATAR_LIST.length;
+  return AVATAR_LIST[idx];
 }
 function roomCode(){
   return 'TB-'+String(Math.floor(100000+Math.random()*900000));
@@ -767,14 +783,16 @@ function normalizeRoomCode(code){
   return String(code||'').trim().toUpperCase().replace(/\s+/g,'');
 }
 function systemChat(text){ return {from:'system',name:'Sistem',text,at:Date.now()}; }
+const ROOM_ROUND_OPTIONS=[3,5,10,15,20];
 function makeRoom(code,joined=false){
   const rival=mockOpponentName(code);
-  const players=[{id:'me',name:onlineName(),ready:false,host:!joined,elo:S.elo}];
-  if(joined) players.push({id:'rival',name:rival,ready:true,host:false,elo:S.elo+20+rand(90)});
+  const players=[{id:'me',name:onlineName(),avatar:onlineAvatar(),ready:false,host:!joined,elo:S.elo}];
+  if(joined) players.push({id:'rival',name:rival,avatar:mockOpponentAvatar(code),ready:true,host:false,elo:S.elo+20+rand(90)});
   return {
     code,
     createdAt:Date.now(),
     ready:false,
+    rounds:5,
     players,
     chat:[systemChat(joined ? rival+' odaya katıldı.' : 'Oda oluşturuldu. Kodu arkadaşına gönder.')]
   };
@@ -817,14 +835,14 @@ async function sendChatMock(message){
   room.chat.push({from:'me',name:onlineName(),text:text.slice(0,80),at:Date.now()});
   trimChat(room);
   await saveState();
-  renderRoomChat();
+  renderAllChatViews();
   setTimeout(async ()=>{
     if(!S.online || !S.online.room || S.online.room.code!==room.code) return;
     const rival=(S.online.room.players||[]).find(p=>p.id==='rival') || {name:mockOpponentName(room.code)};
     S.online.room.chat.push({from:'rival',name:rival.name,text:MOCK_CHAT_REPLIES[rand(MOCK_CHAT_REPLIES.length)],at:Date.now()});
     trimChat(S.online.room);
     await saveState();
-    if(currentScreenId==='screen-room') renderRoomChat();
+    if(currentScreenId==='screen-room' || currentScreenId==='screen-game') renderAllChatViews();
   },550+rand(700));
 }
 async function sendEmojiMock(emoji){
@@ -848,8 +866,8 @@ function makeCompetitiveMatch(source,opponent,opts={}){
     prize:reward.prize,
     targetRounds:opts.rounds||MOCK_MATCH_ROUNDS,
     round:0,
-    opponent:{name:opponent.name,elo:opponent.elo||S.elo+rand(120)-40,correct:0,combo:0,lives:MAX_LIVES,score:0},
-    player:{name:onlineName(),elo:S.elo,correct:0,combo:0,lives:MAX_LIVES,score:0},
+    opponent:{name:opponent.name,avatar:opponent.avatar||mockOpponentAvatar(opponent.name),elo:opponent.elo||S.elo+rand(120)-40,correct:0,combo:0,lives:MAX_LIVES,score:0,roundWins:0},
+    player:{name:onlineName(),avatar:onlineAvatar(),elo:S.elo,correct:0,combo:0,lives:MAX_LIVES,score:0,roundWins:0},
     tournamentType:opts.tournamentType||'',
     createdAt:Date.now()
   };
@@ -862,11 +880,11 @@ async function startFriendMatchMock(){
     S.online.room=room;
   }
   if(!(room.players||[]).some(p=>p.id==='rival')){
-    room.players.push({id:'rival',name:mockOpponentName(room.code),ready:true,host:false,elo:S.elo+20+rand(80)});
+    room.players.push({id:'rival',name:mockOpponentName(room.code),avatar:mockOpponentAvatar(room.code),ready:true,host:false,elo:S.elo+20+rand(80)});
     room.chat.push(systemChat('Mock rakip odaya eklendi.'));
   }
   const rival=room.players.find(p=>p.id==='rival');
-  S.online.activeMatch=makeCompetitiveMatch('friend',rival);
+  S.online.activeMatch=makeCompetitiveMatch('friend',rival,{rounds:ROOM_ROUND_OPTIONS.includes(room.rounds)?room.rounds:5});
   await saveState();
   renderRace();
   showScreen('screen-race');
@@ -930,7 +948,7 @@ async function prepareTournamentRound(){
   const opp=currentTournamentOpponent();
   const t=S.online.tournament;
   if(!opp || !t) return;
-  S.online.activeMatch=makeCompetitiveMatch('tournament',opp,{rounds:3,tournamentType:t.type});
+  S.online.activeMatch=makeCompetitiveMatch('tournament',opp,{rounds:5,tournamentType:t.type});
   await saveState();
   renderRace();
   showScreen('screen-race');
@@ -939,16 +957,31 @@ function simulateOpponentRound(match,playerCorrect){
   const eloGap=(match.opponent.elo||1000)-(S.elo||1000);
   const chance=Math.max(.45,Math.min(.78,.62+eloGap/1000));
   const correct=Math.random()<chance;
+  const ballSlot=ballCup?ballCup.slot:null;
   if(correct){
     match.opponent.correct++;
     match.opponent.combo++;
     match.opponent.score+=105+Math.min(70,match.opponent.combo*9)+Math.max(0,match.opponent.lives)*4;
+    match.opponent.lastPickSlot=ballSlot;
   }else{
     match.opponent.combo=0;
     match.opponent.lives=Math.max(0,match.opponent.lives-1);
     match.opponent.score+=14+rand(12);
+    const others=cups.filter(c=>c.slot!==ballSlot).map(c=>c.slot);
+    match.opponent.lastPickSlot=others.length?others[rand(others.length)]:ballSlot;
   }
   if(!playerCorrect && Math.random()<.28) match.opponent.score+=12;
+}
+async function showOpponentPickReveal(match){
+  const slot=match && match.opponent ? match.opponent.lastPickSlot : null;
+  if(slot==null) return;
+  const cup=cups.find(c=>c.slot===slot);
+  if(!cup) return;
+  cup.el.dataset.oppAvatar=match.opponent.avatar||'🎱';
+  cup.el.classList.add('opponent-pick');
+  await wait(420);
+  cup.el.classList.remove('opponent-pick');
+  delete cup.el.dataset.oppAvatar;
 }
 async function recordCompetitiveRound(playerCorrect){
   ensureOnlineState();
@@ -957,6 +990,7 @@ async function recordCompetitiveRound(playerCorrect){
   match.round++;
   match.player.name=onlineName();
   match.player.lives=Math.max(0,lives);
+  const playerScoreBefore=match.player.score, opponentScoreBefore=match.opponent.score;
   if(playerCorrect){
     match.player.correct++;
     match.player.combo=streak;
@@ -967,8 +1001,13 @@ async function recordCompetitiveRound(playerCorrect){
   }
   simulateOpponentRound(match,playerCorrect);
   match.player.lives=Math.max(0,lives);
-  const finished=match.round>=match.targetRounds || lives<=0;
+  const playerGain=match.player.score-playerScoreBefore, opponentGain=match.opponent.score-opponentScoreBefore;
+  if(playerGain>opponentGain) match.player.roundWins=(match.player.roundWins||0)+1;
+  else if(opponentGain>playerGain) match.opponent.roundWins=(match.opponent.roundWins||0)+1;
+  const bestOf5Decided=match.source==='tournament' && (Math.max(match.player.roundWins,match.opponent.roundWins)>=3);
+  const finished=bestOf5Decided || match.round>=match.targetRounds || lives<=0;
   await saveState();
+  await showOpponentPickReveal(match);
   if(finished){
     await finishCompetitiveMatch(lives<=0);
     return true;
@@ -980,10 +1019,12 @@ async function finishCompetitiveMatch(forceLoss=false){
   const match=S.online.activeMatch;
   if(!match) return;
   match.status='complete';
-  const playerWon=!forceLoss && match.player.score>=match.opponent.score;
+  const playerWon=!forceLoss && (match.source==='tournament'
+    ? (match.player.roundWins!==match.opponent.roundWins ? match.player.roundWins>match.opponent.roundWins : match.player.score>=match.opponent.score)
+    : match.player.score>=match.opponent.score);
   match.result=playerWon?'win':'loss';
   let title=playerWon?'Kazandın!':'Kaybettin';
-  let body='Skor: '+match.player.score+' - '+match.opponent.score;
+  let body=match.source==='tournament' ? 'Raund skoru: '+match.player.roundWins+' - '+match.opponent.roundWins : 'Skor: '+match.player.score+' - '+match.opponent.score;
   if(match.source==='matchmaking'){
     if(playerWon){ S.coins+=match.prize; sndCoin(); }
     await updateEloMock(playerWon?'win':'loss');
@@ -1022,9 +1063,10 @@ async function applyTournamentResult(playerWon,match){
 function tournamentResultText(playerWon,match){
   const t=S.online.tournament;
   const cup=t ? TOURNAMENT_TYPES[t.type] : null;
-  if(!playerWon) return 'Skor: '+match.player.score+' - '+match.opponent.score+'. Turnuvadan elendin.';
-  if(t && t.status==='won') return 'Final skoru: '+match.player.score+' - '+match.opponent.score+'. Ödül: +'+cup.prize+' 🪙';
-  return 'Skor: '+match.player.score+' - '+match.opponent.score+'. Sıradaki tur açıldı.';
+  const rw='Raund skoru: '+match.player.roundWins+' - '+match.opponent.roundWins;
+  if(!playerWon) return rw+'. Turnuvadan elendin.';
+  if(t && t.status==='won') return 'Final '+rw+'. Ödül: +'+cup.prize+' 🪙';
+  return rw+'. Sıradaki tur açıldı.';
 }
 async function beginCompetitiveGame(){
   ensureOnlineState();
@@ -1051,10 +1093,17 @@ function renderRoom(){
   const code=$('room-code-label'); if(code) code.textContent=room.code;
   const ready=$('btn-room-ready'); if(ready) ready.textContent=room.ready?'Hazırsın':'Hazır Ol';
   const start=$('btn-room-start'); if(start) start.disabled=!room.ready;
+  const isHost=(room.players||[]).some(p=>p.id==='me'&&p.host);
+  const roundSelect=$('room-round-select');
+  if(roundSelect){
+    roundSelect.innerHTML=ROOM_ROUND_OPTIONS.map(n=>
+      '<button type="button" class="tab'+(((room.rounds||5)===n)?' active':'')+'"'+(isHost?'':' disabled')+' data-rounds="'+n+'">'+n+'</button>'
+    ).join('');
+  }
   const list=$('room-players');
   if(list){
     list.innerHTML=(room.players||[]).map(p=>
-      '<div class="room-player"><span class="avatar">'+(p.id==='me'?'⭐':'🎱')+'</span><span class="name">'+escapeHtml(p.name)+'<small> • ELO '+(p.elo||S.elo)+'</small></span><span class="ready">'+(p.ready?'Hazır':'Bekliyor')+'</span></div>'
+      '<div class="room-player"><span class="avatar">'+(p.avatar||(p.id==='me'?onlineAvatar():'🎱'))+'</span><span class="name">'+escapeHtml(p.name)+'<small> • ELO '+(p.elo||S.elo)+'</small></span><span class="ready">'+(p.ready?'Hazır':'Bekliyor')+'</span></div>'
     ).join('');
   }
   renderRoomChat();
@@ -1064,6 +1113,21 @@ function renderRoomChat(){
   const box=$('chat-list'); if(!box || !room) return;
   box.innerHTML=(room.chat||[]).map(m=>'<div class="chat-bubble '+(m.from==='me'?'me':m.from==='system'?'system':'rival')+'">'+escapeHtml(m.text)+'</div>').join('');
   box.scrollTop=box.scrollHeight;
+}
+function renderGameChat(){
+  const room=ensureOnlineState().room;
+  const box=$('game-chat-list'); if(!box || !room) return;
+  box.innerHTML=(room.chat||[]).map(m=>'<div class="chat-bubble '+(m.from==='me'?'me':m.from==='system'?'system':'rival')+'">'+escapeHtml(m.text)+'</div>').join('');
+  box.scrollTop=box.scrollHeight;
+}
+function renderAllChatViews(){ renderRoomChat(); renderGameChat(); }
+function syncGameChat(){
+  const panel=$('game-chat'); if(!panel) return;
+  const showChat = mode==='friend' && !!(S.online && S.online.room);
+  panel.classList.toggle('show', showChat);
+  if(!showChat) return;
+  panel.classList.toggle('soft', guessing===true);
+  renderGameChat();
 }
 function renderRace(){
   ensureOnlineState();
@@ -1077,8 +1141,10 @@ function renderRace(){
   }
   if(note) note.textContent=(match.source==='friend'?'Arkadaş odası':match.source==='matchmaking'?'Online maç':'Turnuva')+' • '+(match.status==='complete'?'Bitti':match.status==='in_progress'?'Devam ediyor':'Hazır');
   const p=match.player, o=match.opponent;
+  const roundWinLine=match.source==='tournament' ? '<div class="race-round-win">🏆 '+(p.roundWins||0)+' <span>—</span> '+(o.roundWins||0)+' <small>(best-of-5)</small></div>' : '';
   box.innerHTML='\
-    <div class="race-head"><div class="race-player me">'+escapeHtml(p.name)+'</div><div class="race-vs">VS</div><div class="race-player rival">'+escapeHtml(o.name)+'</div></div>\
+    <div class="race-head"><div class="race-player me"><span class="race-avatar">'+(p.avatar||onlineAvatar())+'</span>'+escapeHtml(p.name)+'</div><div class="race-vs">VS</div><div class="race-player rival">'+escapeHtml(o.name)+'<span class="race-avatar">'+(o.avatar||'🎱')+'</span></div></div>\
+    '+roundWinLine+'\
     <div class="race-stats">\
       <div class="race-stat"><span>Tur</span><b>'+match.round+'/'+match.targetRounds+'</b></div>\
       <div class="race-stat"><span>Doğru</span><b>'+p.correct+' / '+o.correct+'</b></div>\
@@ -1105,7 +1171,7 @@ function renderMatchmaking(){
   const pending=S.online.pendingMatch;
   if(status){ status.classList.remove('searching'); status.textContent=pending?'Rakip bulundu':'Hazır'; }
   if(result){
-    result.innerHTML=pending ? 'Rakip: <b>'+escapeHtml(pending.opponent.name)+'</b><br>ELO: <b>'+pending.opponent.elo+'</b><br>Giriş: <b>'+pending.entryFee+' 🪙</b> • Ödül: <b>'+pending.prize+' 🪙</b>' : '';
+    result.innerHTML=pending ? 'Rakip: <b>'+(pending.opponent.avatar||'🎱')+' '+escapeHtml(pending.opponent.name)+'</b><br>ELO: <b>'+pending.opponent.elo+'</b><br>Giriş: <b>'+pending.entryFee+' 🪙</b> • Ödül: <b>'+pending.prize+' 🪙</b>' : '';
   }
   if(start) start.style.display=pending?'inline-block':'none';
 }
@@ -1216,6 +1282,13 @@ function levelColorClass(lv){
   const t=levelThemeFor(lv).id;
   return t;
 }
+const LEVEL_ZONES=[
+  {from:1,to:10,cls:'zone-blue',label:'1-10 Mavi Eğitim'},
+  {from:11,to:20,cls:'zone-green',label:'11-20 Yeşil Hız'},
+  {from:21,to:30,cls:'zone-orange',label:'21-30 Turuncu Yanıltma'},
+  {from:31,to:40,cls:'zone-purple',label:'31-40 Mor Dikkat'},
+  {from:41,to:50,cls:'zone-red',label:'41-50 Kırmızı Final'}
+];
 function renderLevelMap(){
   const grid=$('level-grid'); if(!grid) return;
   const best=Math.max(0,Number(S.bestLevel)||0);
@@ -1223,23 +1296,35 @@ function renderLevelMap(){
   const summary=$('level-map-summary');
   if(summary) summary.textContent='İlerleme: '+Math.min(best,MAX_CLASSIC_LEVEL)+'/'+MAX_CLASSIC_LEVEL+' • Sıradaki: '+Math.min(unlocked,MAX_CLASSIC_LEVEL);
   grid.innerHTML='';
-  for(let i=1;i<=MAX_CLASSIC_LEVEL;i++){
-    const btn=document.createElement('button');
-    const locked=i>unlocked;
-    const done=i<=best;
-    btn.className='level-node '+levelColorClass(i)+(done?' done':'')+(i===unlocked&&!done?' next':'')+(locked?' locked':'')+(i===MAX_CLASSIC_LEVEL?' final':'');
-    btn.textContent=i;
-    btn.disabled=locked;
-    btn.title=locked?'Bu bölüm kilitli':(done?'Geçildi':'Sıradaki bölüm');
-    btn.addEventListener('click',()=>{ if(!locked) startGameAt(i); });
-    const theme=levelThemeFor(i);
-    btn.style.background = theme.id==='blue' ? 'linear-gradient(180deg,#65c0ff,#1d5f93)' :
-      theme.id==='green' ? 'linear-gradient(180deg,#5fe198,#16774a)' :
-      theme.id==='orange' ? 'linear-gradient(180deg,#ffaf5d,#b65a12)' :
-      theme.id==='purple' ? 'linear-gradient(180deg,#b387ff,#5732a0)' :
-      'linear-gradient(180deg,#ff7569,#9e1e19)';
-    grid.appendChild(btn);
-  }
+  LEVEL_ZONES.forEach(zone=>{
+    const section=document.createElement('div');
+    section.className='zone-section';
+    const header=document.createElement('div');
+    header.className='zone-chip '+zone.cls;
+    header.textContent=zone.label;
+    section.appendChild(header);
+    const path=document.createElement('div');
+    path.className='level-path';
+    for(let i=zone.from;i<=zone.to;i++){
+      const btn=document.createElement('button');
+      const locked=i>unlocked;
+      const done=i<=best;
+      btn.className='level-node '+levelColorClass(i)+(done?' done':'')+(i===unlocked&&!done?' next':'')+(locked?' locked':'')+(i===MAX_CLASSIC_LEVEL?' final':'');
+      btn.textContent=i;
+      btn.disabled=locked;
+      btn.title=locked?'Bu bölüm kilitli':(done?'Geçildi':'Sıradaki bölüm');
+      btn.addEventListener('click',()=>{ if(!locked) startGameAt(i); });
+      const theme=levelThemeFor(i);
+      btn.style.background = theme.id==='blue' ? 'linear-gradient(180deg,#65c0ff,#1d5f93)' :
+        theme.id==='green' ? 'linear-gradient(180deg,#5fe198,#16774a)' :
+        theme.id==='orange' ? 'linear-gradient(180deg,#ffaf5d,#b65a12)' :
+        theme.id==='purple' ? 'linear-gradient(180deg,#b387ff,#5732a0)' :
+        'linear-gradient(180deg,#ff7569,#9e1e19)';
+      path.appendChild(btn);
+    }
+    section.appendChild(path);
+    grid.appendChild(section);
+  });
 }
 async function startGameAt(lv){
   isPaused=false; stopAllGameAudio();
@@ -1270,6 +1355,7 @@ function updateHUD(){
   if(set.colors)extras.push('yakın renkler');
   if(set.invis)extras.push('ışık/gölge');
   $('level-info').textContent=(mode==='endless'?'♾️ Sonsuz • Tur ':'Bölüm ')+level+(mode==='classic'?'/'+MAX_CLASSIC_LEVEL:'')+' • '+set.cupCount+' bardak'+(extras.length?' • ⚠️ '+extras.join(', '):'');
+  syncGameChat();
 }
 
 /* ---------- Bardak oluşturma / konumlama ---------- */
@@ -1578,7 +1664,7 @@ async function handleTimeout(){
   await wait(1050);
   if(await recordCompetitiveRound(false)) return;
   if(lives<=0){ gameOver(); }
-  else{ await maybePlayFailureAd(); await maybeForceRestAfterLifeLoss(); await liftCup(ballCup,false); hideBall(); startRound(); }
+  else{ if(!isCompetitiveMode()){ await maybePlayFailureAd(); await maybeForceRestAfterLifeLoss(); } await liftCup(ballCup,false); hideBall(); startRound(); }
 }
 
 
@@ -1643,20 +1729,20 @@ async function playVarrReview(record){
   const ball=$('ball');
   ball.classList.add('var-review-ball');
   placeBallAt(ballCup);
-  await wait(350);
-  await liftCup(ballCup,true,620);
+  await wait(220);
+  await liftCup(ballCup,true,380);
   $('status-msg').textContent='👀 VAR: Top başlangıçta bu bardağın içindeydi';
-  await wait(620);
-  await liftCup(ballCup,false,620);
+  await wait(380);
+  await liftCup(ballCup,false,380);
   placeBallAt(ballCup);
-  await wait(250);
+  await wait(160);
 
-  const durBase=Math.max(560, (levelSettings(level).dur || 220) * 3.2);
+  const durBase=Math.max(340, (levelSettings(level).dur || 220) * 1.8);
   for(const ev of record.swaps){
     if(!ev || !cups[ev.i] || !cups[ev.j]) continue;
     await swapCups(cups[ev.i],cups[ev.j],durBase,!!ev.feint);
     syncReviewBall();
-    await wait(55);
+    await wait(30);
   }
   snapCupsToSlots();
   syncReviewBall();
@@ -1668,7 +1754,7 @@ async function playVarrReview(record){
     haptic([35,45,35,45,55]);
   }
   $('status-msg').textContent='✅ VAR: Top burada, hatalı seçimin kırmızı ışıkla gösterildi';
-  await wait(2100);
+  await wait(1200);
   if(ballCup){ ballCup.el.classList.remove('var-correct-pick'); }
   if(selectedCup){ selectedCup.el.classList.remove('var-wrong-pick'); }
   $('screen-game').classList.remove('varr-reviewing');
@@ -1738,6 +1824,7 @@ async function startRound(){
   guessing=true; busy=false;
   setHelperButtons(true);
   startChoiceTimer();
+  syncGameChat();
 }
 
 async function onCupTap(cup){
@@ -1837,8 +1924,7 @@ async function onCupTap(cup){
     if(await recordCompetitiveRound(false)) return;
     if(lives<=0){ gameOver(); }
     else{
-      await maybePlayFailureAd();
-      await maybeForceRestAfterLifeLoss();
+      if(!isCompetitiveMode()){ await maybePlayFailureAd(); await maybeForceRestAfterLifeLoss(); }
       // V21 düzeltme: VAR izlendiyse bardaklar zaten yeniden kurulur;
       // eski (DOM'dan kopmuş) bardaklara animasyon yapıp boşa beklenmez.
       if(!wantsVarr){
@@ -2162,9 +2248,17 @@ $('btn-copy-room').addEventListener('click',async ()=>{
 });
 $('btn-share-room').addEventListener('click',async ()=>{
   const code=(S.online&&S.online.room&&S.online.room.code)||'';
-  const text='Top Bulmaca oda kodum: '+code;
+  const text='🎯 Top Bulmaca\'da bana katıl! Oda kodum: '+code+'\nUygulamayı aç, "Arkadaşla Oyna" > "Odaya Katıl" ile bu kodu gir.';
   try{ if(navigator.share) await navigator.share({title:'Top Bulmaca',text}); else msgModal('🔗','Paylaş',text); }
   catch(e){}
+});
+$('room-round-select').addEventListener('click',async e=>{
+  const b=e.target.closest('button[data-rounds]'); if(!b || b.disabled) return;
+  ensureOnlineState();
+  if(!S.online.room) return;
+  S.online.room.rounds=Number(b.dataset.rounds)||5;
+  await saveState();
+  renderRoom();
 });
 $('btn-room-ready').addEventListener('click',async ()=>{
   ensureOnlineState();
@@ -2188,12 +2282,19 @@ $('btn-chat-send').addEventListener('click',async ()=>{
 });
 $('chat-input').addEventListener('keydown',e=>{ if(e.key==='Enter') $('btn-chat-send').click(); });
 $('emoji-row').addEventListener('click',e=>{ const b=e.target.closest('button'); if(b) sendEmojiMock(b.textContent); });
+$('btn-game-chat-send').addEventListener('click',async ()=>{
+  const input=$('game-chat-input');
+  await sendChatMock(input.value);
+  input.value='';
+});
+$('game-chat-input').addEventListener('keydown',e=>{ if(e.key==='Enter') $('btn-game-chat-send').click(); });
+$('game-chat-input').addEventListener('focus',()=>{ const p=$('game-chat'); if(p) p.classList.remove('soft'); });
 $('btn-race-play').addEventListener('click',()=>beginCompetitiveGame());
 $('btn-race-room').addEventListener('click',()=>{renderRoom();showScreen('screen-room');});
 $('btn-race-menu').addEventListener('click',async ()=>{ensureOnlineState();S.online.activeMatch=null;await saveState();refreshMenu();showScreen('screen-menu');});
 $('btn-matchmaking').addEventListener('click',()=>{stopAllGameAudio();renderMatchmaking();showScreen('screen-matchmaking');});
 $('btn-matchmaking-back').addEventListener('click',()=>{if(mockSearchTimer) clearTimeout(mockSearchTimer);refreshMenu();showScreen('screen-menu');});
-$('btn-find-match').addEventListener('click',async e=>{e.currentTarget.disabled=true;await findMatchMock();e.currentTarget.disabled=false;});
+$('btn-find-match').addEventListener('click',async e=>{const btn=e.currentTarget;btn.disabled=true;await findMatchMock();btn.disabled=false;});
 $('btn-start-found-match').addEventListener('click',()=>beginCompetitiveGame());
 $('btn-tournament').addEventListener('click',()=>{stopAllGameAudio();renderTournament();showScreen('screen-tournament');});
 $('btn-tournament-back').addEventListener('click',()=>{refreshMenu();showScreen('screen-menu');});
@@ -2227,10 +2328,16 @@ $('btn-resume-run').addEventListener('click',async ()=>{
 $('btn-new-run').addEventListener('click',async ()=>{modal('modal-resume',false);pendingResumeRun=null;await clearRunState();checkDaily();});
 
 
+$('avatar-row').addEventListener('click',e=>{
+  const b=e.target.closest('button[data-avatar]'); if(!b) return;
+  nameModalAvatarDraft=b.dataset.avatar;
+  renderAvatarRow();
+});
 $('btn-save-name').addEventListener('click',async ()=>{
   const name=normalizePlayerName($('player-name-input').value);
   if(name.length<2){ msgModal('👤','İsim gerekli','Lütfen en az 2 harfli bir isim yaz.'); return; }
   S.playerName=name;
+  S.avatar=AVATAR_LIST.includes(nameModalAvatarDraft) ? nameModalAvatarDraft : AVATAR_LIST[0];
   await saveState();
   updatePlayerWelcome();
   modal('modal-name',false);
