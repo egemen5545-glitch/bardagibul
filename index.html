@@ -80,11 +80,24 @@
   <div id="zone-badge">Mavi Eğitim</div>
   <div class="timer-wrap"><div id="timer-fill"></div></div>
   <div id="status-msg"></div>
+  <div id="game-social" class="game-social" aria-hidden="true">
+    <div class="game-side me">
+      <div id="game-bubble-me" class="game-bubble"></div>
+      <div id="game-avatar-me" class="game-avatar">⭐</div>
+    </div>
+    <div class="game-side rival">
+      <div id="game-bubble-rival" class="game-bubble"></div>
+      <div id="game-avatar-rival" class="game-avatar">🎱</div>
+    </div>
+  </div>
   <div id="table-wrap"><div id="table"><div id="ball"></div></div></div>
   <div id="game-chat" class="game-chat soft">
-    <div id="game-chat-list" class="chat-list game-chat-list"></div>
+    <div class="emoji-row game-emoji-row" id="game-emoji-row">
+      <button>😂</button><button>😎</button><button>👀</button><button>🎯</button>
+      <button>🔥</button><button>👏</button>
+    </div>
     <div class="chat-compose game-chat-compose">
-      <input id="game-chat-input" class="online-input" type="text" maxlength="80" placeholder="Mesaj...">
+      <input id="game-chat-input" class="online-input" type="text" maxlength="20" placeholder="Mesaj...">
       <button class="btn small" id="btn-game-chat-send">➤</button>
     </div>
   </div>
@@ -141,7 +154,7 @@
   <div class="online-panel">
     <button class="btn" id="btn-create-room">➕ Oda Oluştur</button>
     <div class="join-box">
-      <input id="room-code-input" class="online-input" type="text" maxlength="9" placeholder="TB-482913" autocomplete="off">
+      <input id="room-code-input" class="online-input" type="tel" maxlength="4" inputmode="numeric" pattern="[0-9]*" placeholder="4829" autocomplete="off">
       <button class="btn secondary" id="btn-join-room">🔑 Odaya Katıl</button>
     </div>
   </div>
@@ -154,7 +167,7 @@
   <div class="room-shell">
     <div class="room-code-card">
       <span>Oda Kodu</span>
-      <strong id="room-code-label">TB-000000</strong>
+      <strong id="room-code-label">0000</strong>
       <div class="room-actions">
         <button class="btn small secondary" id="btn-copy-room">Kopyala</button>
         <button class="btn small secondary" id="btn-share-room">Paylaş</button>
@@ -189,6 +202,17 @@
   <h1 class="logo page-logo">YARIŞMA</h1>
   <p class="tagline online-note" id="race-note">Local/mock maç hazırlanıyor.</p>
   <div id="race-scoreboard" class="race-scoreboard"></div>
+  <div class="chat-panel race-chat-panel">
+    <div id="race-chat-list" class="chat-list"></div>
+    <div class="emoji-row" id="race-emoji-row">
+      <button>😂</button><button>😎</button><button>😡</button><button>👀</button>
+      <button>🎯</button><button>🔥</button><button>💀</button><button>👏</button>
+    </div>
+    <div class="chat-compose">
+      <input id="race-chat-input" class="online-input" type="text" maxlength="80" placeholder="Mesaj yaz...">
+      <button class="btn small" id="btn-race-chat-send">Gönder</button>
+    </div>
+  </div>
   <div class="race-actions">
     <button class="btn" id="btn-race-play">Maça Başla</button>
     <button class="btn small secondary" id="btn-race-room">Odaya Dön</button>

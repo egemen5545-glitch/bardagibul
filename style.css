@@ -70,15 +70,27 @@
   #ball{position:absolute;bottom:44px;width:38px;height:38px;border-radius:50%;display:none;z-index:0;pointer-events:none;
     box-shadow:inset -5px -6px 10px rgba(0,0,0,.35), 0 4px 6px rgba(0,0,0,.4)}
   #hint-row{padding:0 0 calc(22px + env(safe-area-inset-bottom));display:flex;gap:10px;flex-wrap:wrap;justify-content:center}
-  .game-chat{width:min(94vw,420px);margin:0 auto 8px;display:none;flex-direction:column;gap:5px;
+  .game-social{position:absolute;left:8px;right:8px;top:calc(158px + env(safe-area-inset-top));display:none;justify-content:space-between;align-items:flex-start;z-index:16;pointer-events:none}
+  .game-social.show{display:flex}
+  .game-side{width:96px;display:flex;flex-direction:column;align-items:center;gap:5px}
+  .game-side.me{align-items:flex-start}.game-side.rival{align-items:flex-end}
+  .game-avatar{width:42px;height:42px;border-radius:999px;display:grid;place-items:center;
+    background:linear-gradient(180deg,#fff0a8,#F2C14E 58%,#C98A3B);color:#3A2410;font-size:23px;
+    border:2px solid rgba(255,255,255,.65);box-shadow:0 8px 18px rgba(0,0,0,.32)}
+  .game-bubble{max-width:96px;min-height:0;padding:0;opacity:0;transform:translateY(4px);overflow:hidden;
+    white-space:nowrap;text-overflow:ellipsis;border-radius:12px;font-size:11px;font-weight:900;line-height:1.1;
+    background:rgba(0,0,0,.66);color:#fff7d8;box-shadow:0 7px 16px rgba(0,0,0,.28);transition:opacity .18s,transform .18s,padding .18s}
+  .game-bubble.show{opacity:.96;transform:translateY(0);padding:6px 8px}
+  .game-side.me .game-bubble{background:linear-gradient(180deg,#fff0a8,#F2C14E);color:#3A2410}
+  .game-chat{width:min(92vw,360px);margin:0 auto 8px;display:none;flex-direction:column;gap:5px;
     transition:opacity .25s ease;flex-shrink:0}
   .game-chat.show{display:flex}
-  .game-chat.soft{opacity:.4}
-  #game-chat-list{height:34px;padding:4px 8px;border-radius:10px;background:rgba(0,0,0,.28);overflow-y:auto}
-  .game-chat-list .chat-bubble{font-size:11px;padding:3px 7px;max-width:100%;margin-bottom:3px}
+  .game-chat.soft{opacity:.56}
   .game-chat-compose{gap:5px}
   .game-chat-compose .online-input{padding:7px 10px;font-size:12px}
   .game-chat-compose .btn{min-width:0!important;padding:7px 12px!important}
+  .game-emoji-row{grid-template-columns:repeat(6,1fr);gap:4px;margin:0}
+  .game-emoji-row button{min-height:28px;font-size:15px;border-radius:10px}
 
   /* ---------- modal ---------- */
   .modal-back{position:fixed;inset:0;background:rgba(0,0,0,.6);display:none;align-items:center;justify-content:center;z-index:60;padding:20px}

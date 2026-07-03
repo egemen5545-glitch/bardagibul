@@ -141,7 +141,7 @@
   <div class="online-panel">
     <button class="btn" id="btn-create-room">➕ Oda Oluştur</button>
     <div class="join-box">
-      <input id="room-code-input" class="online-input" type="text" maxlength="9" placeholder="TB-482913" autocomplete="off">
+      <input id="room-code-input" class="online-input" type="tel" maxlength="4" inputmode="numeric" pattern="[0-9]*" placeholder="4829" autocomplete="off">
       <button class="btn secondary" id="btn-join-room">🔑 Odaya Katıl</button>
     </div>
   </div>
@@ -154,7 +154,7 @@
   <div class="room-shell">
     <div class="room-code-card">
       <span>Oda Kodu</span>
-      <strong id="room-code-label">TB-000000</strong>
+      <strong id="room-code-label">0000</strong>
       <div class="room-actions">
         <button class="btn small secondary" id="btn-copy-room">Kopyala</button>
         <button class="btn small secondary" id="btn-share-room">Paylaş</button>

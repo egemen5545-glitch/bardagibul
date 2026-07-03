@@ -764,6 +764,7 @@ const TOURNAMENT_TYPES={
   legend:{id:'legend',name:'Efsane Kupa',entry:1500,prize:2700,badge:'🏆'}
 };
 let mockSearchTimer=null;
+const gameChatTimers={me:null,rival:null};
 function onlineName(){ return S.playerName || 'Sen'; }
 function onlineAvatar(){ return AVATAR_LIST.includes(S.avatar) ? S.avatar : AVATAR_LIST[0]; }
 function mockOpponentName(seed=''){
@@ -777,10 +778,13 @@ function mockOpponentAvatar(seed=''){
   return AVATAR_LIST[idx];
 }
 function roomCode(){
-  return 'TB-'+String(Math.floor(100000+Math.random()*900000));
+  return String(Math.floor(1000+Math.random()*9000));
 }
 function normalizeRoomCode(code){
-  return String(code||'').trim().toUpperCase().replace(/\s+/g,'');
+  return String(code||'').trim();
+}
+function isValidRoomCode(code){
+  return /^\d{4}$/.test(code);
 }
 function systemChat(text){ return {from:'system',name:'Sistem',text,at:Date.now()}; }
 const ROOM_ROUND_OPTIONS=[3,5,10,15,20];
@@ -808,6 +812,7 @@ async function createRoomMock(){
 async function joinRoomMock(code){
   const normalized=normalizeRoomCode(code);
   if(!normalized){ msgModal('🔑','Kod gerekli','Odaya katılmak için davet kodunu yazmalısın.'); return null; }
+  if(!isValidRoomCode(normalized)){ msgModal('🔑','Hatalı kod','Kod 4 haneli sayı olmalı.'); return null; }
   ensureOnlineState();
   S.online.room=makeRoom(normalized, true);
   S.online.pendingMatch=null;
@@ -824,25 +829,81 @@ async function leaveRoomMock(){
   await saveState();
   showScreen('screen-friends');
 }
-function trimChat(room){
-  if(room && Array.isArray(room.chat) && room.chat.length>40) room.chat=room.chat.slice(-40);
+function trimChat(target){
+  if(target && Array.isArray(target.chat) && target.chat.length>40) target.chat=target.chat.slice(-40);
+}
+function activeChatMatch(){
+  ensureOnlineState();
+  return S.online.activeMatch || S.online.pendingMatch || (currentScreenId==='screen-race' ? S.online.lastMatch : null);
+}
+function activeChatTarget(){
+  ensureOnlineState();
+  const match=activeChatMatch();
+  const room=S.online.room;
+  if(room && (!match || match.source==='friend' || currentScreenId==='screen-room')){
+    if(!Array.isArray(room.chat)) room.chat=[];
+    return {kind:'room', owner:room, chat:room.chat};
+  }
+  if(match){
+    if(!Array.isArray(match.chat)) match.chat=[systemChat('Maç sohbeti hazır.')];
+    return {kind:'match', owner:match, chat:match.chat};
+  }
+  return null;
+}
+function chatRivalInfo(){
+  ensureOnlineState();
+  const room=S.online.room;
+  const match=activeChatMatch();
+  if(room){
+    const rival=(room.players||[]).find(p=>p.id==='rival');
+    if(rival) return {name:rival.name,avatar:rival.avatar||'🎱'};
+  }
+  if(match && match.opponent) return {name:match.opponent.name,avatar:match.opponent.avatar||'🎱'};
+  return null;
+}
+function gameChatText(text){
+  return String(text||'').replace(/\s+/g,' ').trim().slice(0,20);
+}
+function showGameChatBubble(from,text){
+  if(currentScreenId!=='screen-game' || !isCompetitiveMode()) return;
+  const side=from==='me'?'me':from==='rival'?'rival':'';
+  if(!side) return;
+  const bubble=$(side==='me'?'game-bubble-me':'game-bubble-rival');
+  if(!bubble) return;
+  const compact=gameChatText(text);
+  if(!compact) return;
+  bubble.textContent=compact;
+  bubble.classList.add('show');
+  if(gameChatTimers[side]) clearTimeout(gameChatTimers[side]);
+  gameChatTimers[side]=setTimeout(()=>bubble.classList.remove('show'),6000);
+}
+function renderChatBox(box,chat){
+  if(!box) return;
+  box.innerHTML=(chat||[]).map(m=>'<div class="chat-bubble '+(m.from==='me'?'me':m.from==='system'?'system':'rival')+'">'+escapeHtml(m.text)+'</div>').join('');
+  box.scrollTop=box.scrollHeight;
 }
 async function sendChatMock(message){
   ensureOnlineState();
-  const room=S.online.room;
   const text=String(message||'').trim();
-  if(!room || !text) return;
-  room.chat.push({from:'me',name:onlineName(),text:text.slice(0,80),at:Date.now()});
-  trimChat(room);
+  const target=activeChatTarget();
+  if(!target || !text) return;
+  const mine={from:'me',name:onlineName(),avatar:onlineAvatar(),text:text.slice(0,80),at:Date.now()};
+  target.chat.push(mine);
+  trimChat(target.owner);
   await saveState();
   renderAllChatViews();
+  showGameChatBubble('me',mine.text);
+  const rivalInfo=chatRivalInfo();
+  if(!rivalInfo) return;
   setTimeout(async ()=>{
-    if(!S.online || !S.online.room || S.online.room.code!==room.code) return;
-    const rival=(S.online.room.players||[]).find(p=>p.id==='rival') || {name:mockOpponentName(room.code)};
-    S.online.room.chat.push({from:'rival',name:rival.name,text:MOCK_CHAT_REPLIES[rand(MOCK_CHAT_REPLIES.length)],at:Date.now()});
-    trimChat(S.online.room);
+    const current=activeChatTarget();
+    if(!current || current.owner!==target.owner) return;
+    const reply={from:'rival',name:rivalInfo.name,avatar:rivalInfo.avatar,text:MOCK_CHAT_REPLIES[rand(MOCK_CHAT_REPLIES.length)],at:Date.now()};
+    current.chat.push(reply);
+    trimChat(current.owner);
     await saveState();
-    if(currentScreenId==='screen-room' || currentScreenId==='screen-game') renderAllChatViews();
+    renderAllChatViews();
+    showGameChatBubble('rival',reply.text);
   },550+rand(700));
 }
 async function sendEmojiMock(emoji){
@@ -868,6 +929,7 @@ function makeCompetitiveMatch(source,opponent,opts={}){
     round:0,
     opponent:{name:opponent.name,avatar:opponent.avatar||mockOpponentAvatar(opponent.name),elo:opponent.elo||S.elo+rand(120)-40,correct:0,combo:0,lives:MAX_LIVES,score:0,roundWins:0},
     player:{name:onlineName(),avatar:onlineAvatar(),elo:S.elo,correct:0,combo:0,lives:MAX_LIVES,score:0,roundWins:0},
+    chat:[systemChat('Maç sohbeti hazır.')],
     tournamentType:opts.tournamentType||'',
     createdAt:Date.now()
   };
@@ -1110,22 +1172,35 @@ function renderRoom(){
 }
 function renderRoomChat(){
   const room=ensureOnlineState().room;
-  const box=$('chat-list'); if(!box || !room) return;
-  box.innerHTML=(room.chat||[]).map(m=>'<div class="chat-bubble '+(m.from==='me'?'me':m.from==='system'?'system':'rival')+'">'+escapeHtml(m.text)+'</div>').join('');
-  box.scrollTop=box.scrollHeight;
+  const box=$('chat-list'); if(!box) return;
+  renderChatBox(box, room ? room.chat : []);
+}
+function renderRaceChat(){
+  const box=$('race-chat-list'); if(!box) return;
+  const target=activeChatTarget();
+  renderChatBox(box, target ? target.chat : []);
 }
 function renderGameChat(){
-  const room=ensureOnlineState().room;
-  const box=$('game-chat-list'); if(!box || !room) return;
-  box.innerHTML=(room.chat||[]).map(m=>'<div class="chat-bubble '+(m.from==='me'?'me':m.from==='system'?'system':'rival')+'">'+escapeHtml(m.text)+'</div>').join('');
-  box.scrollTop=box.scrollHeight;
+  const social=$('game-social');
+  if(!social) return;
+  const match=activeChatMatch();
+  const rival=chatRivalInfo();
+  const meAvatar=$('game-avatar-me');
+  const rivalAvatar=$('game-avatar-rival');
+  if(meAvatar) meAvatar.textContent=(match&&match.player&&match.player.avatar)||onlineAvatar();
+  if(rivalAvatar) rivalAvatar.textContent=(rival&&rival.avatar)||(match&&match.opponent&&match.opponent.avatar)||'🎱';
 }
-function renderAllChatViews(){ renderRoomChat(); renderGameChat(); }
+function renderAllChatViews(){ renderRoomChat(); renderRaceChat(); renderGameChat(); }
 function syncGameChat(){
   const panel=$('game-chat'); if(!panel) return;
-  const showChat = mode==='friend' && !!(S.online && S.online.room);
+  const social=$('game-social');
+  const showChat = isCompetitiveMode() && !!activeChatTarget();
   panel.classList.toggle('show', showChat);
-  if(!showChat) return;
+  if(social) social.classList.toggle('show', showChat);
+  if(!showChat){
+    ['game-bubble-me','game-bubble-rival'].forEach(id=>{ const b=$(id); if(b) b.classList.remove('show'); });
+    return;
+  }
   panel.classList.toggle('soft', guessing===true);
   renderGameChat();
 }
@@ -1161,6 +1236,7 @@ function renderRace(){
   }
   const roomBtn=$('btn-race-room');
   if(roomBtn) roomBtn.style.display=match.source==='friend'?'inline-block':'none';
+  renderRaceChat();
 }
 function renderMatchmaking(){
   ensureOnlineState();
@@ -2239,6 +2315,7 @@ $('btn-friends').addEventListener('click',()=>{stopAllGameAudio();showScreen('sc
 $('btn-friends-back').addEventListener('click',()=>{refreshMenu();showScreen('screen-menu');});
 $('btn-create-room').addEventListener('click',()=>createRoomMock());
 $('btn-join-room').addEventListener('click',()=>joinRoomMock($('room-code-input').value));
+$('room-code-input').addEventListener('input',e=>{ e.target.value=String(e.target.value||'').replace(/\D/g,'').slice(0,4); });
 $('room-code-input').addEventListener('keydown',e=>{ if(e.key==='Enter') $('btn-join-room').click(); });
 $('btn-room-leave').addEventListener('click',()=>leaveRoomMock());
 $('btn-copy-room').addEventListener('click',async ()=>{

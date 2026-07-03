@@ -777,10 +777,13 @@ function mockOpponentAvatar(seed=''){
   return AVATAR_LIST[idx];
 }
 function roomCode(){
-  return 'TB-'+String(Math.floor(100000+Math.random()*900000));
+  return String(Math.floor(1000+Math.random()*9000));
 }
 function normalizeRoomCode(code){
-  return String(code||'').trim().toUpperCase().replace(/\s+/g,'');
+  return String(code||'').trim();
+}
+function isValidRoomCode(code){
+  return /^\d{4}$/.test(code);
 }
 function systemChat(text){ return {from:'system',name:'Sistem',text,at:Date.now()}; }
 const ROOM_ROUND_OPTIONS=[3,5,10,15,20];
@@ -808,6 +811,7 @@ async function createRoomMock(){
 async function joinRoomMock(code){
   const normalized=normalizeRoomCode(code);
   if(!normalized){ msgModal('🔑','Kod gerekli','Odaya katılmak için davet kodunu yazmalısın.'); return null; }
+  if(!isValidRoomCode(normalized)){ msgModal('🔑','Hatalı kod','Kod 4 haneli sayı olmalı.'); return null; }
   ensureOnlineState();
   S.online.room=makeRoom(normalized, true);
   S.online.pendingMatch=null;
@@ -2239,6 +2243,7 @@ $('btn-friends').addEventListener('click',()=>{stopAllGameAudio();showScreen('sc
 $('btn-friends-back').addEventListener('click',()=>{refreshMenu();showScreen('screen-menu');});
 $('btn-create-room').addEventListener('click',()=>createRoomMock());
 $('btn-join-room').addEventListener('click',()=>joinRoomMock($('room-code-input').value));
+$('room-code-input').addEventListener('input',e=>{ e.target.value=String(e.target.value||'').replace(/\D/g,'').slice(0,4); });
 $('room-code-input').addEventListener('keydown',e=>{ if(e.key==='Enter') $('btn-join-room').click(); });
 $('btn-room-leave').addEventListener('click',()=>leaveRoomMock());
 $('btn-copy-room').addEventListener('click',async ()=>{
