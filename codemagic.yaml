@@ -19,7 +19,7 @@ workflows:
       vars:
         APP_NAME: "Top Bulmaca"
         BUNDLE_ID: "com.egemen5545.topbulmaca"
-        APP_STORE_APP_ID: "BURAYA_APPLE_APP_ID_YAZ"
+        APP_STORE_APP_ID: "6787123873"
         XCODE_WORKSPACE: "ios/App/App.xcworkspace"
         XCODE_SCHEME: "App"
 
