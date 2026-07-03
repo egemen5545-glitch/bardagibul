@@ -1213,6 +1213,63 @@ body.final-victory{animation:finalScreenFlash 1.6s ease-in-out 2}@keyframes fina
   color:var(--gold);
   font-size:18px;
 }
+.race-duel{
+  display:grid;
+  grid-template-columns:minmax(0,1fr) auto minmax(0,1fr);
+  gap:9px;
+  align-items:stretch;
+}
+.race-duel-card{
+  min-width:0;
+  display:grid;
+  grid-template-columns:auto minmax(0,1fr);
+  grid-template-areas:
+    "avatar name"
+    "avatar role"
+    "score score";
+  align-items:center;
+  gap:2px 8px;
+  padding:10px;
+  border-radius:16px;
+  background:rgba(0,0,0,.25);
+  border:1px solid rgba(255,255,255,.11);
+  text-align:left;
+}
+.race-duel-card.me{
+  border-color:rgba(242,193,78,.38);
+}
+.race-duel-card.rival{
+  border-color:rgba(92,204,255,.28);
+}
+.race-duel-card .race-avatar{
+  grid-area:avatar;
+}
+.race-duel-card strong{
+  grid-area:name;
+  min-width:0;
+  overflow:hidden;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+  color:#fff4c7;
+  font-size:15px;
+  line-height:1.08;
+}
+.race-duel-card small{
+  grid-area:role;
+  font-size:10px;
+  font-weight:900;
+  opacity:.7;
+}
+.race-duel-card b{
+  grid-area:score;
+  margin-top:6px;
+  padding:6px 8px;
+  border-radius:12px;
+  background:rgba(0,0,0,.24);
+  color:var(--gold);
+  font-size:20px;
+  text-align:center;
+}
 .race-player{
   min-width:0;
   overflow:hidden;
@@ -1226,6 +1283,18 @@ body.final-victory{animation:finalScreenFlash 1.6s ease-in-out 2}@keyframes fina
   font-size:20px;
   margin:0 6px;
   vertical-align:middle;
+}
+.race-avatar.big{
+  width:42px;
+  height:42px;
+  display:grid;
+  place-items:center;
+  margin:0;
+  border-radius:50%;
+  background:linear-gradient(180deg,#fff0a8,#F2C14E 58%,#C98A3B);
+  color:#3A2410;
+  font-size:23px;
+  box-shadow:0 6px 14px rgba(0,0,0,.25);
 }
 .race-round-win{
   text-align:center;

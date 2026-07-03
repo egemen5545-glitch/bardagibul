@@ -5,12 +5,13 @@
   const FIREBASE_SDK_VERSION = '10.12.5';
   // Firebase Console degerleri buraya girilecek. Placeholder kaldiginda mock fallback aktif kalir.
   const FIREBASE_CONFIG = {
-    apiKey: 'YOUR_FIREBASE_API_KEY',
-    authDomain: 'YOUR_FIREBASE_AUTH_DOMAIN',
-    projectId: 'YOUR_FIREBASE_PROJECT_ID',
-    storageBucket: 'YOUR_FIREBASE_STORAGE_BUCKET',
-    messagingSenderId: 'YOUR_FIREBASE_MESSAGING_SENDER_ID',
-    appId: 'YOUR_FIREBASE_APP_ID'
+    apiKey: 'AIzaSyCHwGHZiGjUHNnv8JQD9DQiy3c7ahpDJ2o',
+    authDomain: 'topbul-d1981.firebaseapp.com',
+    projectId: 'topbul-d1981',
+    storageBucket: 'topbul-d1981.firebasestorage.app',
+    messagingSenderId: '150969091616',
+    appId: '1:150969091616:web:01007bfbbeacfc58075e45',
+    measurementId: 'G-4K682GG81C'
   };
 
   const state = {
@@ -217,7 +218,7 @@
       await sdk.setDoc(queueRef, queuePayload, {merge:true});
       const q = sdk.query(
         sdk.collection(fb.db, 'matchmakingQueue'),
-        sdk.where('status','in',['waiting','searching']),
+        sdk.where('status','==','waiting'),
         sdk.limit(20)
       );
       const snap = await sdk.getDocs(q);

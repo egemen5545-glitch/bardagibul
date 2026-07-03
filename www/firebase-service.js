@@ -5,12 +5,13 @@
   const FIREBASE_SDK_VERSION = '10.12.5';
   // Firebase Console degerleri buraya girilecek. Placeholder kaldiginda mock fallback aktif kalir.
   const FIREBASE_CONFIG = {
-    apiKey: 'YOUR_FIREBASE_API_KEY',
-    authDomain: 'YOUR_FIREBASE_AUTH_DOMAIN',
-    projectId: 'YOUR_FIREBASE_PROJECT_ID',
-    storageBucket: 'YOUR_FIREBASE_STORAGE_BUCKET',
-    messagingSenderId: 'YOUR_FIREBASE_MESSAGING_SENDER_ID',
-    appId: 'YOUR_FIREBASE_APP_ID'
+    apiKey: 'AIzaSyCHwGHZiGjUHNnv8JQD9DQiy3c7ahpDJ2o',
+    authDomain: 'topbul-d1981.firebaseapp.com',
+    projectId: 'topbul-d1981',
+    storageBucket: 'topbul-d1981.firebasestorage.app',
+    messagingSenderId: '150969091616',
+    appId: '1:150969091616:web:01007bfbbeacfc58075e45',
+    measurementId: 'G-4K682GG81C'
   };
 
   const state = {
@@ -33,13 +34,17 @@
   }
 
   function nowPlayer(extra){
+    const data = extra || {};
+    const generatedId = 'player-' + Date.now();
     return Object.assign({
-      id: 'player-' + Date.now(),
+      id: data.userId || data.id || generatedId,
+      userId: data.userId || data.id || generatedId,
       name: 'Oyuncu',
       avatar: '⭐',
+      elo: 1000,
       ready: false,
       joinedAt: Date.now()
-    }, extra || {});
+    }, data);
   }
 
   function noopUnsubscribe(){
@@ -145,18 +150,121 @@
     return payload;
   }
 
+  function firebaseMatchPayload(matchId, data, userId){
+    const player1 = data.player1 || {};
+    const player2 = data.player2 || {};
+    return {
+      id: matchId,
+      matchId,
+      status: data.status || 'ready',
+      player1,
+      player2,
+      score1: Number(data.score1) || 0,
+      score2: Number(data.score2) || 0,
+      winner: data.winner || null,
+      playerSlot: player1.userId === userId ? 'player1' : 'player2'
+    };
+  }
+
+  async function waitForQueuedMatch(fb, userId, timeoutMs){
+    const sdk = fb.sdk;
+    const queueRef = sdk.doc(fb.db, 'matchmakingQueue', userId);
+    return new Promise(resolve=>{
+      let done = false;
+      let unsub = noopUnsubscribe();
+      const finish = value=>{
+        if(done) return;
+        done = true;
+        try{ unsub(); }catch(e){}
+        resolve(value);
+      };
+      const timer = setTimeout(()=>finish({status:'queued', queueId:userId}), timeoutMs || 9000);
+      unsub = sdk.onSnapshot(queueRef, async snap=>{
+        const data = snap.exists() ? snap.data() : null;
+        if(!data || data.status !== 'matched' || !data.matchId) return;
+        clearTimeout(timer);
+        try{
+          const matchSnap = await sdk.getDoc(sdk.doc(fb.db, 'matches', String(data.matchId)));
+          finish({
+            status:'matched',
+            matchId:String(data.matchId),
+            match:matchSnap.exists() ? firebaseMatchPayload(matchSnap.id, matchSnap.data(), userId) : null
+          });
+        }catch(e){
+          finish({status:'matched', matchId:String(data.matchId), match:null});
+        }
+      }, ()=>finish({status:'queued', queueId:userId}));
+    });
+  }
+
   async function findMatch(playerData){
     const fb = await initFirebase();
     if(!fb) return fallback('findMatch', arguments, null);
     const sdk = fb.sdk;
-    const payload = {
-      player: nowPlayer(playerData),
+    const player = nowPlayer(playerData);
+    const elo = Math.max(500, Math.min(2500, Math.round(Number(player.elo) || 1000)));
+    const userId = String(player.userId || player.id);
+    const queueRef = sdk.doc(fb.db, 'matchmakingQueue', userId);
+    const queuePayload = {
+      userId,
+      name: String(player.name || 'Oyuncu').slice(0, 24),
+      avatar: player.avatar || '⭐',
+      elo,
       status: 'searching',
-      elo: Number(playerData && playerData.elo) || 1000,
-      createdAt: sdk.serverTimestamp()
+      joinedAt: sdk.serverTimestamp(),
+      joinedAtMs: Date.now()
     };
-    const ref = await sdk.addDoc(sdk.collection(fb.db, 'matchRequests'), payload);
-    return {requestId:ref.id, data:payload};
+    try{
+      await sdk.setDoc(queueRef, queuePayload, {merge:true});
+      const q = sdk.query(
+        sdk.collection(fb.db, 'matchmakingQueue'),
+        sdk.where('status','==','waiting'),
+        sdk.limit(20)
+      );
+      const snap = await sdk.getDocs(q);
+      const candidates = [];
+      snap.forEach(docSnap=>{
+        const data = docSnap.data();
+        const candidateElo = Number(data && data.elo) || 1000;
+        if(data && data.userId !== userId && Math.abs(candidateElo - elo) <= 150) candidates.push({id:docSnap.id, ref:docSnap.ref, data});
+      });
+      candidates.sort((a,b)=>(Number(a.data.joinedAtMs)||0)-(Number(b.data.joinedAtMs)||0));
+      const other = candidates[0];
+      if(other){
+        const matchRef = sdk.doc(sdk.collection(fb.db, 'matches'));
+        const matchData = {
+          player1: {
+            userId: other.data.userId,
+            name: other.data.name || 'Rakip',
+            avatar: other.data.avatar || '🎱',
+            elo: Number(other.data.elo) || 1000
+          },
+          player2: {
+            userId,
+            name: queuePayload.name,
+            avatar: queuePayload.avatar,
+            elo
+          },
+          score1: 0,
+          score2: 0,
+          status: 'ready',
+          winner: null,
+          createdAt: sdk.serverTimestamp(),
+          updatedAt: sdk.serverTimestamp()
+        };
+        const batch = sdk.writeBatch(fb.db);
+        batch.set(matchRef, matchData);
+        batch.set(other.ref, {status:'matched', matchId:matchRef.id, matchedAt:sdk.serverTimestamp()}, {merge:true});
+        batch.set(queueRef, {status:'matched', matchId:matchRef.id, matchedAt:sdk.serverTimestamp()}, {merge:true});
+        await batch.commit();
+        return {status:'matched', matchId:matchRef.id, match:firebaseMatchPayload(matchRef.id, matchData, userId)};
+      }
+      await sdk.setDoc(queueRef, {status:'waiting'}, {merge:true});
+      return await waitForQueuedMatch(fb, userId, 9000);
+    }catch(err){
+      state.lastError = err && err.message ? err.message : 'Firebase matchmaking failed';
+      return fallback('findMatch', arguments, null);
+    }
   }
 
   async function listenMatch(matchId, callback){
@@ -176,6 +284,14 @@
       matchId: String(matchId),
       submittedAt: sdk.serverTimestamp()
     }, result || {});
+    const matchUpdate = {
+      status: payload.status || 'complete',
+      updatedAt: sdk.serverTimestamp()
+    };
+    if(typeof payload.score1 === 'number') matchUpdate.score1 = payload.score1;
+    if(typeof payload.score2 === 'number') matchUpdate.score2 = payload.score2;
+    if(payload.winner !== undefined) matchUpdate.winner = payload.winner;
+    await sdk.setDoc(sdk.doc(fb.db, 'matches', String(matchId)), matchUpdate, {merge:true});
     await sdk.setDoc(sdk.doc(fb.db, 'matchResults', String(matchId)), payload, {merge:true});
     return payload;
   }
