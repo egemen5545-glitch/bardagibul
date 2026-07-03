@@ -52,6 +52,39 @@ const BALL_SKINS = [
   {id:'crown', name:'Şampiyon Topu', price:9200, tier:'legendary', tag:'Ultra', perk:{type:'comboShield', value:1}, icon:'👑', css:'radial-gradient(circle at 30% 24%,#fff7a8,#f2c14e 45%,#8f6510 86%)'}
 ];
 
+const TABLE_SKINS = [
+  {id:'felt-classic', name:'Klasik Keçe', price:0, tier:'common', tag:'Başlangıç', css:'linear-gradient(180deg,#245c4b,#173f33 58%,#0f2d24)', edge:'#0e2c22', glow:'rgba(0,0,0,.34)', note:'Dengeli ve sade oyun masası'},
+  {id:'wood-table', name:'Ahşap Masa', price:1800, tier:'rare', tag:'Doğal', css:'linear-gradient(135deg,#7b4d1b 0 12%,#c98a3b 12% 26%,#8f5e24 26% 41%,#d8a04d 41% 56%,#6d4218 56% 72%,#be7c2f 72% 100%)', edge:'#5a3514', glow:'rgba(90,53,20,.42)', note:'Sıcak ahşap dokulu masa'},
+  {id:'neon-table', name:'Neon Masa', price:2800, tier:'epic', tag:'Neon', css:'radial-gradient(circle at 50% 42%,rgba(57,255,215,.38),transparent 38%),linear-gradient(180deg,#10374c,#071729 72%,#04101d)', edge:'#39ffd7', glow:'rgba(57,255,215,.28)', note:'Parlayan gece masası'},
+  {id:'galaxy-table', name:'Galaksi Masa', price:4200, tier:'epic', tag:'Uzay', css:'radial-gradient(circle at 22% 24%,rgba(255,255,255,.9) 0 1px,transparent 2px),radial-gradient(circle at 74% 36%,rgba(255,255,255,.7) 0 1px,transparent 2px),radial-gradient(circle at 50% 42%,rgba(142,92,255,.45),transparent 42%),linear-gradient(160deg,#24124f,#09051f 74%)', edge:'#8f5cff', glow:'rgba(142,92,255,.32)', note:'Yıldızlı galaksi yüzeyi'},
+  {id:'marble-table', name:'Mermer Masa', price:5200, tier:'legendary', tag:'Şık', css:'linear-gradient(120deg,rgba(255,255,255,.8),transparent 18%,rgba(120,210,230,.22) 35%,transparent 48%,rgba(255,255,255,.7) 68%,transparent),linear-gradient(180deg,#e9f5f3,#8fb7b1)', edge:'#d8f2ef', glow:'rgba(216,242,239,.28)', note:'Parlak mermer sahne'},
+  {id:'gold-stage-table', name:'Altın Masa', price:6800, tier:'legendary', tag:'Sahne', css:'radial-gradient(circle at 50% 30%,rgba(255,255,255,.42),transparent 34%),linear-gradient(180deg,#fbe08a,#f2c14e 54%,#9b6a16)', edge:'#fff0a8', glow:'rgba(242,193,78,.36)', note:'Final hissi veren altın masa'}
+];
+
+const BACKGROUND_SKINS = [
+  {id:'zone', name:'Bölüm Renkleri', price:0, tier:'common', tag:'Başlangıç', preview:'radial-gradient(ellipse at 50% 30%,#1e5b76 0%,#12364b 62%,#071823 100%)', note:'Bölüme göre renk değiştirir'},
+  {id:'arena-bg', name:'Arena Arka Planı', price:2200, tier:'rare', tag:'Arena', felt:'#255f50', feltDark:'#12382f', bg:'#071813', background:'radial-gradient(circle at 20% 18%,rgba(242,193,78,.34),transparent 18%),radial-gradient(circle at 80% 18%,rgba(242,193,78,.22),transparent 18%),radial-gradient(ellipse at 50% 35%,#2a6f5b 0%,#123d32 58%,#071813 100%)', note:'Tribün ışıklı arena'},
+  {id:'night-bg', name:'Gece Modu', price:2600, tier:'rare', tag:'Gece', felt:'#1f4c60', feltDark:'#10293c', bg:'#050d18', background:'radial-gradient(circle at 72% 18%,rgba(255,255,255,.28),transparent 9%),radial-gradient(circle at 24% 28%,rgba(92,204,255,.22),transparent 18%),radial-gradient(ellipse at 50% 30%,#214d63 0%,#102a3d 61%,#050d18 100%)', note:'Daha sakin koyu tema'},
+  {id:'gold-stage-bg', name:'Altın Sahne', price:3600, tier:'epic', tag:'Sahne', felt:'#6d5120', feltDark:'#3a280d', bg:'#160d04', background:'radial-gradient(circle at 50% 14%,rgba(255,240,168,.44),transparent 22%),radial-gradient(circle at 16% 24%,rgba(242,193,78,.22),transparent 20%),radial-gradient(circle at 84% 24%,rgba(242,193,78,.18),transparent 20%),radial-gradient(ellipse at 50% 36%,#7b5a21 0%,#3d2a0e 62%,#160d04 100%)', note:'Altın ışıklı gösteri alanı'},
+  {id:'galaxy-bg', name:'Galaksi Arka Planı', price:4800, tier:'epic', tag:'Uzay', felt:'#332a65', feltDark:'#171238', bg:'#060312', background:'radial-gradient(circle at 18% 22%,rgba(255,255,255,.75) 0 1px,transparent 2px),radial-gradient(circle at 78% 30%,rgba(255,255,255,.6) 0 1px,transparent 2px),radial-gradient(circle at 54% 16%,rgba(120,92,255,.34),transparent 24%),radial-gradient(ellipse at 50% 34%,#3a2d73 0%,#18133a 62%,#060312 100%)', note:'Yıldızlı uzay atmosferi'},
+  {id:'neon-city-bg', name:'Neon Şehir', price:6200, tier:'legendary', tag:'Neon', felt:'#153f54', feltDark:'#081d2e', bg:'#020812', background:'linear-gradient(180deg,rgba(57,255,215,.18),transparent 30%),radial-gradient(circle at 22% 22%,rgba(255,92,180,.28),transparent 20%),radial-gradient(circle at 78% 25%,rgba(92,204,255,.28),transparent 20%),radial-gradient(ellipse at 50% 36%,#16465e 0%,#082033 62%,#020812 100%)', note:'Işıltılı şehir gecesi'}
+];
+
+const MUSIC_SKINS = [
+  {id:'classic', name:'Klasik', price:0, tier:'common', tag:'Başlangıç', icon:'♪', gain:1, chordSeconds:8, pluckChance:.78, pluckGap:2.3, pluckSpread:3.2, note:'Yumuşak ve dengeli oyun müziği'},
+  {id:'arcade', name:'Arcade', price:900, tier:'common', tag:'Tempo', icon:'♫', gain:1.05, chordSeconds:6.4, pluckChance:.92, pluckGap:1.55, pluckSpread:2.2, pitch:1.08, filter:1200, pluckFilter:3100, wave:'triangle', note:'Daha canlı ve hızlı ritim'},
+  {id:'tension', name:'Gerilim', price:1600, tier:'rare', tag:'Odak', icon:'♩', gain:.84, chordSeconds:9.2, pluckChance:.46, pluckGap:3.4, pluckSpread:4.2, pitch:.72, filter:520, pluckFilter:1200, wave:'sawtooth', chords:[[82.41,98.00,123.47,146.83],[87.31,103.83,130.81,155.56],[73.42,92.50,110.00,138.59],[77.78,98.00,116.54,146.83]], notes:[392,415.3,466.16,523.25,554.37], note:'Düşük tonlu dikkat modu'},
+  {id:'victory', name:'Zafer', price:2200, tier:'epic', tag:'Parlak', icon:'♬', gain:1.1, chordSeconds:7, pluckChance:.86, pluckGap:1.9, pluckSpread:2.4, pitch:1.22, filter:1450, pluckFilter:3600, wave:'triangle', chords:[[130.81,164.81,196.00,261.63],[146.83,196.00,246.94,293.66],[174.61,220.00,261.63,349.23],[196.00,246.94,293.66,392.00]], notes:[659.25,783.99,880.00,987.77,1174.66], note:'Parlak kupa havası'},
+  {id:'silent', name:'Sessiz', price:0, tier:'common', tag:'Sessiz', icon:'∅', silent:true, note:'Müzik çalmaz, ses efektleri ayarına göre kalır'}
+];
+
+const MUSIC_ID_MIGRATIONS = {
+  calm:'classic',
+  'arena-drums':'victory',
+  'night-synth':'tension',
+  'galaxy-pad':'tension'
+};
+
 const TIER_LABELS = {common:'Common', rare:'Rare', epic:'Epic', legendary:'Legendary'};
 // Perkler küçük tutulur ve activeSkinPerks ile yalnızca ilk 10 bölümde çalışır.
 const PERK_LABELS = {
@@ -64,25 +97,19 @@ const PERK_LABELS = {
 };
 
 const MAX_CLASSIC_LEVEL = 50;
-const AD_BREAK_EVERY_LEVEL = 10;
 const MAX_LIVES = 10;
 const COMBO_LIFE_INTERVAL = 3;
-const FAILURE_AD_EVERY = 2;
 const BASE_REWARD = 20;
 const HINT_COST = 90;
 const ELIMINATE_COST = 45;
 const HINT_REWARD = 10;
 const ELIMINATE_REWARD = 15;
 const VAR_COST = 150;
-const AD_DURATION_SECONDS = 10;
-const REST_SECONDS = 3;
-const AD_NOTICES_ENABLED = false; // Gerçek reklam eklenecek aşamaya kadar ekranda reklam bildirimi gösterme.
 const RUN_SAVE_KEY = 'bardagibul-active-run';
-const FORCE_REST_AFTER_CONSECUTIVE_LOSSES = 3;
-const LONG_PLAY_REST_AFTER_MS = 5 * 60 * 1000;
 const MOCK_MATCH_ROUNDS = 5;
 const MOCK_MATCH_ENTRY_FEE = 40;
 const MOCK_MATCH_REWARD = 75;
+const TESTER_COIN_FLOOR = 100000; // Test icin kullanici istegi: tum market secenekleri denenebilsin.
 
 /* ---------- Kalıcı kayıt (window.storage → localStorage → bellek) ---------- */
 const memStore = {};
@@ -108,16 +135,25 @@ const store = {
 const S = {
   coins:0, bestLevel:0, bestEndless:0,
   ownedCups:['red'], ownedBalls:['orange'],
+  ownedTables:['felt-classic'], ownedBackgrounds:['zone'], ownedMusic:['classic','silent'],
   cupSkin:'red', ballSkin:'orange',
+  tableSkin:'felt-classic', backgroundSkin:'zone', musicSkin:'classic',
   lastDaily:'', muted:false,
   musicOn:true, sfxOn:true,
   bestCombo:0, campaignCompleted:false, playerName:'', avatar:'⭐', dailyStats:null,
   starterCoinsGiven:false, weeklyLeague:null, weeklyBadge:'',
-  elo:1000, online:null
+  elo:1000, userId:'', online:null
 };
+function makeLocalUserId(){
+  try{ if(window.crypto && window.crypto.randomUUID) return window.crypto.randomUUID(); }catch(e){}
+  return 'tb-'+Date.now().toString(36)+'-'+Math.random().toString(36).slice(2,10);
+}
 function uniqueList(arr){ return Array.from(new Set((Array.isArray(arr)?arr:[]).filter(Boolean))); }
 function selectedCupSkin(){ return CUP_SKINS.find(s=>s.id===S.cupSkin)||CUP_SKINS[0]; }
 function selectedBallSkin(){ return BALL_SKINS.find(s=>s.id===S.ballSkin)||BALL_SKINS[0]; }
+function selectedTableSkin(){ return TABLE_SKINS.find(s=>s.id===S.tableSkin)||TABLE_SKINS[0]; }
+function selectedBackgroundSkin(){ return BACKGROUND_SKINS.find(s=>s.id===S.backgroundSkin)||BACKGROUND_SKINS[0]; }
+function selectedMusicSkin(){ return MUSIC_SKINS.find(s=>s.id===S.musicSkin)||MUSIC_SKINS[0]; }
 function emptySkinPerks(){
   return {xrayMs:0, slowStartFactor:1, focusMs:0, steadyFactor:1, coinBoost:0, comboShield:false, labels:[]};
 }
@@ -166,14 +202,30 @@ function ensureOnlineState(){
 }
 function sanitizeState(){
   if(!AVATAR_LIST.includes(S.avatar)) S.avatar=AVATAR_LIST[0];
+  S.coins=Math.max(TESTER_COIN_FLOOR, Number(S.coins)||0);
   S.ownedCups = uniqueList(S.ownedCups);
   S.ownedBalls = uniqueList(S.ownedBalls);
+  S.ownedTables = uniqueList(S.ownedTables);
+  S.ownedBackgrounds = uniqueList(S.ownedBackgrounds);
+  S.ownedMusic = uniqueList(S.ownedMusic);
+  S.ownedMusic = uniqueList(S.ownedMusic.map(id=>MUSIC_ID_MIGRATIONS[id]||id));
+  if(MUSIC_ID_MIGRATIONS[S.musicSkin]) S.musicSkin=MUSIC_ID_MIGRATIONS[S.musicSkin];
   if(!S.ownedCups.includes('red')) S.ownedCups.unshift('red');
   if(!S.ownedBalls.includes('orange')) S.ownedBalls.unshift('orange');
+  if(!S.ownedTables.includes('felt-classic')) S.ownedTables.unshift('felt-classic');
+  if(!S.ownedBackgrounds.includes('zone')) S.ownedBackgrounds.unshift('zone');
+  if(!S.ownedMusic.includes('classic')) S.ownedMusic.unshift('classic');
+  if(!S.ownedMusic.includes('silent')) S.ownedMusic.push('silent');
   if(!CUP_SKINS.some(x=>x.id===S.cupSkin)) S.cupSkin='red';
   if(!BALL_SKINS.some(x=>x.id===S.ballSkin)) S.ballSkin='orange';
+  if(!TABLE_SKINS.some(x=>x.id===S.tableSkin)) S.tableSkin='felt-classic';
+  if(!BACKGROUND_SKINS.some(x=>x.id===S.backgroundSkin)) S.backgroundSkin='zone';
+  if(!MUSIC_SKINS.some(x=>x.id===S.musicSkin)) S.musicSkin='classic';
   if(!S.ownedCups.includes(S.cupSkin)) S.ownedCups.push(S.cupSkin);
   if(!S.ownedBalls.includes(S.ballSkin)) S.ownedBalls.push(S.ballSkin);
+  if(!S.ownedTables.includes(S.tableSkin)) S.ownedTables.push(S.tableSkin);
+  if(!S.ownedBackgrounds.includes(S.backgroundSkin)) S.ownedBackgrounds.push(S.backgroundSkin);
+  if(!S.ownedMusic.includes(S.musicSkin)) S.ownedMusic.push(S.musicSkin);
   ensureOnlineState();
 }
 async function saveState(){ sanitizeState(); await store.set('bardagibul-save', JSON.stringify(S)); }
@@ -247,8 +299,7 @@ const FAIL_SFX=[
 ];
 const preloadedFailSfx=[];
 function soundAllowed(){
-  // V21: ses efektleri artık tüm ekranlarda çalabilir (market/görev altın sesi düzeltildi).
-  // Oyun ekranından çıkınca zamanlanmış sesler zaten stopAllGameAudio ile temizleniyor.
+  // Ses efektleri duraklatma, arka plan ve gizli sekme durumlarında kesilir.
   return S.sfxOn && !appIsBackgrounded && !document.hidden && !isPaused;
 }
 function scheduleSound(fn,delayMs){
@@ -256,7 +307,7 @@ function scheduleSound(fn,delayMs){
   soundTimers.add(id);
   return id;
 }
-function stopAllGameAudio(){
+function stopAllGameAudio(opts={}){
   soundTimers.forEach(id=>clearTimeout(id));
   soundTimers.clear();
   activeOscillators.forEach(o=>{ try{o.stop(0);}catch(e){} });
@@ -265,8 +316,7 @@ function stopAllGameAudio(){
     try{ a.pause(); a.currentTime=0; }catch(e){}
   });
   activeMedia.clear();
-  // V21: AudioContext artık burada askıya alınmıyor; fon müziği aynı context'te
-  // kesintisiz devam eder. Context yalnızca uygulama arka plana geçince askıya alınır.
+  if(opts.music!==false) stopMusic(!!opts.immediateMusic);
 }
 function ensureAudio(){
   try{
@@ -353,10 +403,9 @@ function sndVarAlarm(){
 const sndCoin=()=>beep(1200,.08,'square',0.08);
 const sndCombo=()=>{beep(920,.08,'triangle',0.08);scheduleSound(()=>beep(1280,.1,'triangle',0.08),90);};
 
-/* ---------- V21: Sakinleştirici fon müziği ----------
+/* ---------- V22: Seçilebilir local müzik sistemi ----------
    Dış dosya yok; müzik Web Audio ile canlı üretilir (tamamen telifsiz).
-   Yumuşak akor pedleri (I–vi–IV–V) + seyrek pentatonik tınılar.
-   Menüde, oyunda ve duraklatma sırasında sakin sakin akmaya devam eder. */
+   Müzik yalnızca aktif oyun ekranında, uygulama öndeyken ve oyun durmuyorken çalar. */
 const MUSIC_CHORDS=[
   [130.81,164.81,196.00,246.94], // Cmaj7
   [110.00,164.81,196.00,261.63], // Am7
@@ -369,6 +418,10 @@ let musicGain=null, musicPlaying=false, musicTimer=null;
 let musicNextChordAt=0, musicChordIndex=0, musicNextPluckAt=0;
 const musicNodes=new Set();
 
+function musicAllowed(){
+  const profile=selectedMusicSkin();
+  return S.musicOn && !profile.silent && currentScreenId==='screen-game' && !isPaused && !appIsBackgrounded && !document.hidden;
+}
 function ensureMusicGain(ctx){
   if(musicGain) return musicGain;
   musicGain=ctx.createGain();
@@ -377,17 +430,19 @@ function ensureMusicGain(ctx){
   return musicGain;
 }
 function scheduleMusicChord(ctx,when){
-  const chord=MUSIC_CHORDS[musicChordIndex % MUSIC_CHORDS.length];
+  const profile=selectedMusicSkin();
+  const chords=profile.chords||MUSIC_CHORDS;
+  const chord=chords[musicChordIndex % chords.length];
   musicChordIndex++;
-  const dur=MUSIC_CHORD_SECONDS+3; // akorlar birbirine yumuşakça karışır
+  const dur=(profile.chordSeconds||MUSIC_CHORD_SECONDS)+3; // akorlar birbirine yumuşakça karışır
   chord.forEach((freq,i)=>{
     try{
       const o=ctx.createOscillator(), g=ctx.createGain(), f=ctx.createBiquadFilter();
-      o.type=i===0?'sine':'triangle';
-      o.frequency.value=freq;
+      o.type=profile.wave || (i===0?'sine':'triangle');
+      o.frequency.value=freq*(profile.pitch||1);
       o.detune.value=(Math.random()*6-3);
-      f.type='lowpass'; f.frequency.value=820; f.Q.value=0.4;
-      const v=(i===0?0.052:0.034)/chord.length*4*0.5; // her ses çok kısık
+      f.type='lowpass'; f.frequency.value=profile.filter||820; f.Q.value=0.4;
+      const v=(i===0?0.052:0.034)/chord.length*4*0.5*(profile.gain||1); // her ses çok kısık
       g.gain.setValueAtTime(0.0001,when);
       g.gain.linearRampToValueAtTime(v,when+2.6);           // yavaş nefes alma
       g.gain.setValueAtTime(v,when+dur-3.2);
@@ -401,11 +456,13 @@ function scheduleMusicChord(ctx,when){
 }
 function scheduleMusicPluck(ctx,when){
   try{
-    const freq=MUSIC_PLUCK_NOTES[rand(MUSIC_PLUCK_NOTES.length)];
+    const profile=selectedMusicSkin();
+    const notes=profile.notes||MUSIC_PLUCK_NOTES;
+    const freq=notes[rand(notes.length)]*(profile.pitch||1);
     const o=ctx.createOscillator(), g=ctx.createGain(), f=ctx.createBiquadFilter();
-    o.type='sine'; o.frequency.value=freq; o.detune.value=(Math.random()*8-4);
-    f.type='lowpass'; f.frequency.value=2400;
-    const v=0.016+Math.random()*0.012;
+    o.type=profile.pluckWave||'sine'; o.frequency.value=freq; o.detune.value=(Math.random()*8-4);
+    f.type='lowpass'; f.frequency.value=profile.pluckFilter||2400;
+    const v=(0.016+Math.random()*0.012)*(profile.gain||1);
     g.gain.setValueAtTime(0.0001,when);
     g.gain.exponentialRampToValueAtTime(v,when+0.04);
     g.gain.exponentialRampToValueAtTime(0.0001,when+1.9);
@@ -417,34 +474,38 @@ function scheduleMusicPluck(ctx,when){
 }
 function musicTick(){
   if(!musicPlaying || !audioCtx) return;
+  if(!musicAllowed()){ stopMusic(true); return; }
   if(audioCtx.state!=='running') return;
+  const profile=selectedMusicSkin();
+  const chordSeconds=profile.chordSeconds||MUSIC_CHORD_SECONDS;
   const now=audioCtx.currentTime;
   if(musicNextChordAt < now) musicNextChordAt = now + 0.15;
   while(musicNextChordAt < now + 1.2){
     scheduleMusicChord(audioCtx, musicNextChordAt);
-    musicNextChordAt += MUSIC_CHORD_SECONDS;
+    musicNextChordAt += chordSeconds;
   }
   if(musicNextPluckAt < now) musicNextPluckAt = now + 1.5 + Math.random()*2;
   while(musicNextPluckAt < now + 1.2){
-    if(Math.random()<0.82) scheduleMusicPluck(audioCtx, musicNextPluckAt);
-    musicNextPluckAt += 2.2 + Math.random()*3.4;
+    if(Math.random()<(profile.pluckChance==null ? .82 : profile.pluckChance)) scheduleMusicPluck(audioCtx, musicNextPluckAt);
+    musicNextPluckAt += (profile.pluckGap||2.2) + Math.random()*(profile.pluckSpread||3.4);
   }
 }
 function startMusic(){
-  if(!S.musicOn || musicPlaying) return;
+  if(!musicAllowed() || musicPlaying) return;
   const ctx=ensureAudio(); if(!ctx) return;
+  const profile=selectedMusicSkin();
   musicPlaying=true;
   const g=ensureMusicGain(ctx);
   try{
     g.gain.cancelScheduledValues(ctx.currentTime);
     g.gain.setValueAtTime(Math.max(0.0001,g.gain.value),ctx.currentTime);
-    g.gain.linearRampToValueAtTime(0.9,ctx.currentTime+1.8); // yumuşak giriş
+    g.gain.linearRampToValueAtTime(0.9*(profile.gain||1),ctx.currentTime+1.8); // yumuşak giriş
   }catch(e){}
   musicNextChordAt=0; musicNextPluckAt=0;
   musicTick();
   if(!musicTimer) musicTimer=setInterval(musicTick,400);
 }
-function stopMusic(){
+function stopMusic(immediate=false){
   musicPlaying=false;
   if(musicTimer){ clearInterval(musicTimer); musicTimer=null; }
   if(audioCtx && musicGain){
@@ -452,14 +513,24 @@ function stopMusic(){
       const t=audioCtx.currentTime;
       musicGain.gain.cancelScheduledValues(t);
       musicGain.gain.setValueAtTime(Math.max(0.0001,musicGain.gain.value),t);
-      musicGain.gain.linearRampToValueAtTime(0.0001,t+0.8); // yumuşak çıkış
+      if(immediate) musicGain.gain.setValueAtTime(0.0001,t);
+      else musicGain.gain.linearRampToValueAtTime(0.0001,t+0.8); // yumuşak çıkış
     }catch(e){}
+  }
+  if(immediate){
+    musicNodes.forEach(o=>{ try{o.stop(0);}catch(e){} });
+    musicNodes.clear();
+    return;
   }
   setTimeout(()=>{
     if(musicPlaying) return;
     musicNodes.forEach(o=>{ try{o.stop(0);}catch(e){} });
     musicNodes.clear();
   },900);
+}
+function restartMusicForSelection(){
+  stopMusic(true);
+  setTimeout(()=>{ if(musicAllowed()) startMusic(); },120);
 }
 
 /* ---------- Yardımcılar ---------- */
@@ -499,12 +570,13 @@ function showNameModal(){
 function suspendGameAudio(){
   if(currentScreenId==='screen-game') saveRunState();
   appIsBackgrounded=true;
-  stopAllGameAudio();
+  stopAllGameAudio({immediateMusic:true});
   try{ if(audioCtx && audioCtx.state==='running') audioCtx.suspend(); }catch(e){}
 }
 function resumeGameAudio(){
   appIsBackgrounded=false;
   try{ if(audioCtx && audioCtx.state==='suspended' && (S.musicOn || S.sfxOn)) audioCtx.resume(); }catch(e){}
+  setTimeout(()=>{ if(musicAllowed()) startMusic(); },80);
 }
 document.addEventListener('visibilitychange',()=>{
   if(document.hidden) suspendGameAudio();
@@ -530,11 +602,11 @@ function exitGameFullscreen(){
 }
 function showScreen(id){
   currentScreenId=id;
-  if(id!=='screen-game'){ stopAllGameAudio(); exitGameFullscreen(); }
+  if(id!=='screen-game'){ stopAllGameAudio({immediateMusic:true}); exitGameFullscreen(); clearGameCosmetics(); }
   document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
   $(id).classList.add('active');
   $('topbar').classList.toggle('show', id==='screen-game');
-  if(id==='screen-game'){ setTimeout(requestGameFullscreen,30); }
+  if(id==='screen-game'){ applyGameCosmetics(); setTimeout(()=>{ requestGameFullscreen(); startMusic(); },30); }
 }
 ['pointerdown','touchstart','click'].forEach(ev=>{
   document.addEventListener(ev,()=>{ if(currentScreenId==='screen-game') requestGameFullscreen(); },{passive:true});
@@ -617,6 +689,37 @@ function applyLevelTheme(lv){
   try{ document.body.dataset.zone=theme.id; }catch(e){}
   const badge=$('zone-badge');
   if(badge) badge.textContent=theme.emoji+' '+theme.title+' • '+theme.desc;
+}
+function backgroundPreviewFor(skin){
+  return (skin&&skin.preview) || (skin&&skin.background) || 'radial-gradient(ellipse at 50% 30%,#1e5b76 0%,#12364b 62%,#071823 100%)';
+}
+function clearGameCosmetics(){
+  try{
+    ['--table-surface','--table-edge','--table-glow','--felt','--felt-dark','--bg'].forEach(v=>document.body.style.removeProperty(v));
+    document.body.style.removeProperty('background');
+    delete document.body.dataset.tableSkin;
+    delete document.body.dataset.backgroundSkin;
+  }catch(e){}
+}
+function applyGameCosmetics(){
+  const tableSkin=selectedTableSkin();
+  const bgSkin=selectedBackgroundSkin();
+  try{
+    document.body.style.setProperty('--table-surface',tableSkin.css);
+    document.body.style.setProperty('--table-edge',tableSkin.edge||'rgba(255,255,255,.12)');
+    document.body.style.setProperty('--table-glow',tableSkin.glow||'rgba(0,0,0,.32)');
+    document.body.dataset.tableSkin=tableSkin.id;
+    document.body.dataset.backgroundSkin=bgSkin.id;
+    if(bgSkin.id==='zone'){
+      ['--felt','--felt-dark','--bg'].forEach(v=>document.body.style.removeProperty(v));
+      document.body.style.removeProperty('background');
+      return;
+    }
+    if(bgSkin.felt) document.body.style.setProperty('--felt',bgSkin.felt);
+    if(bgSkin.feltDark) document.body.style.setProperty('--felt-dark',bgSkin.feltDark);
+    if(bgSkin.bg) document.body.style.setProperty('--bg',bgSkin.bg);
+    if(bgSkin.background) document.body.style.background=bgSkin.background;
+  }catch(e){}
 }
 function todayStr(){ const d=new Date();return d.getFullYear()+'-'+(d.getMonth()+1)+'-'+d.getDate(); }
 function missionDayIndex(date=new Date()){
@@ -1100,6 +1203,11 @@ async function finishCompetitiveMatch(forceLoss=false){
     body = tournamentResultText(playerWon,match);
   }
   S.online.lastMatch=match;
+  try{
+    if(typeof submitMatchResult==='function'){
+      await submitMatchResult(match.id,{source:match.source,result:match.result,player:match.player,opponent:match.opponent,completedAt:Date.now()});
+    }
+  }catch(e){}
   await submitLeaderboardMock(match.player.score);
   await saveState();
   refreshMenu();
@@ -1403,7 +1511,7 @@ function renderLevelMap(){
   });
 }
 async function startGameAt(lv){
-  isPaused=false; stopAllGameAudio();
+  isPaused=false; stopAllGameAudio({immediateMusic:true});
   mode='classic'; level=Math.max(1,Math.min(Number(lv)||1,MAX_CLASSIC_LEVEL)); lives=MAX_LIVES; streak=0; adUsedThisRun=false; failuresSinceAd=0;
   playSessionStartedAt=Date.now(); consecutiveLifeLosses=0; longPlayRestTriggeredThisRun=false;
   resetRunPerkState();
@@ -1421,6 +1529,7 @@ function finalConfettiBurst(){
 
 function updateHUD(){
   applyLevelTheme(level);
+  applyGameCosmetics();
   $('coins-label').textContent=S.coins;
   $('combo-label').textContent=streak;
   if($('campaign-label')) $('campaign-label').textContent = mode==='classic' ? Math.min(level,MAX_CLASSIC_LEVEL)+'/'+MAX_CLASSIC_LEVEL : '∞';
@@ -1697,32 +1806,6 @@ function startChoiceTimer(total=choiceTimeFor(level)){
   };
   choiceTimerRaf=requestAnimationFrame(tick);
 }
-async function maybePlayFailureAd(){
-  if(mode!=='classic' || lives<=0) return;
-  failuresSinceAd++;
-  if(failuresSinceAd>=FAILURE_AD_EVERY){
-    failuresSinceAd=0;
-    await playAdBreak('fail');
-  }
-}
-
-async function maybeForceRestAfterLifeLoss(){
-  if(lives<=0) return;
-  const playedMs = Math.max(0, Date.now() - (playSessionStartedAt || Date.now()));
-  let reasonText = '';
-  if(consecutiveLifeLosses >= FORCE_REST_AFTER_CONSECUTIVE_LOSSES){
-    reasonText = 'Üst üste '+FORCE_REST_AFTER_CONSECUTIVE_LOSSES+' can gitti. Kısa bir nefes al, sonra devam.';
-    consecutiveLifeLosses = 0;
-  }else if(!longPlayRestTriggeredThisRun && playedMs >= LONG_PLAY_REST_AFTER_MS){
-    reasonText = '5 dakikadan fazla oynadın. İlk hatadan sonra kısa dinlenme zamanı.';
-    longPlayRestTriggeredThisRun = true;
-  }
-  if(reasonText){
-    await saveRunState();
-    await showRestCountdown(reasonText);
-  }
-}
-
 async function handleTimeout(){
   if(!guessing||busy)return;
   guessing=false;busy=true;stopChoiceTimer();setHelperButtons(false);clearFx();
@@ -1740,7 +1823,7 @@ async function handleTimeout(){
   await wait(1050);
   if(await recordCompetitiveRound(false)) return;
   if(lives<=0){ gameOver(); }
-  else{ if(!isCompetitiveMode()){ await maybePlayFailureAd(); await maybeForceRestAfterLifeLoss(); } await liftCup(ballCup,false); hideBall(); startRound(); }
+  else{ await liftCup(ballCup,false); hideBall(); startRound(); }
 }
 
 
@@ -1788,7 +1871,7 @@ async function playVarrReview(record){
   if(!record || !Array.isArray(record.swaps)) return;
   varrReviewing=true;
   hideVarrButton();
-  stopAllGameAudio();
+  stopAllGameAudio({immediateMusic:true});
   stopChoiceTimer();
   setHelperButtons(false);
   clearFx();
@@ -1838,12 +1921,14 @@ async function playVarrReview(record){
   level=oldLevel;
   varrReviewing=false;
   busy=false;
+  startMusic();
 }
 
 /* ---------- Tur akışı ---------- */
 async function startRound(){
   isPaused=false;
   stopChoiceTimer(); resetTimerBar();
+  startMusic();
   hideVarrButton();
   busy=true; guessing=false; hintUsedThisRound=false; eliminateUsedThisRound=false; varrUsedThisRound=false;
   activeRoundPerks=activeSkinPerks(level);
@@ -1967,9 +2052,6 @@ async function onCupTap(cup){
     }
     level++;
     await saveRunState();
-    if(mode==='classic' && clearedLevel % AD_BREAK_EVERY_LEVEL === 0){
-      await showRestCountdown('Bölüm '+clearedLevel+' bitti. Sıradaki raunta hazırlan.');
-    }
     startRound();
   }else{
     await liftCup(cup,true);          // boş bardak
@@ -2000,7 +2082,6 @@ async function onCupTap(cup){
     if(await recordCompetitiveRound(false)) return;
     if(lives<=0){ gameOver(); }
     else{
-      if(!isCompetitiveMode()){ await maybePlayFailureAd(); await maybeForceRestAfterLifeLoss(); }
       // V21 düzeltme: VAR izlendiyse bardaklar zaten yeniden kurulur;
       // eski (DOM'dan kopmuş) bardaklara animasyon yapıp boşa beklenmez.
       if(!wantsVarr){
@@ -2012,32 +2093,9 @@ async function onCupTap(cup){
     }
   }
 }
-
-
-
-async function showRestCountdown(reason='rest'){
-  stopAllGameAudio();
-  $('modal-adbreak').querySelector('h2').textContent = 'Dinlenme';
-  const text = typeof reason==='string' && reason && reason!=='rest' ? reason : 'Bir sonraki hamleye hazırlan...';
-  $('modal-adbreak').querySelector('p').innerHTML = text+'<br><span id="adbreak-count" style="font-size:34px;font-family:\'Nunito\',system-ui,sans-serif;font-weight:900;color:var(--gold)">'+REST_SECONDS+'</span>';
-  modal('modal-adbreak',true);
-  let n=REST_SECONDS; $('adbreak-count').textContent=n;
-  await new Promise(res=>{
-    const iv=setInterval(()=>{
-      n--; $('adbreak-count').textContent=n;
-      if(n<=0){ clearInterval(iv); modal('modal-adbreak',false); res(); }
-    },1000);
-  });
-}
-
-async function playAdBreak(clearedLevelOrReason, opts={}){
-  // Reklam entegrasyonu için kanca burada tutuluyor; şu an kullanıcıya reklam bildirimi gösterilmiyor.
-  stopAllGameAudio();
-  if(!AD_NOTICES_ENABLED) return;
-}
-
 async function completeCampaign(){
   busy=false; guessing=false; stopChoiceTimer(); setHelperButtons(false); await clearRunState();
+  stopMusic(true);
   document.body.classList.add('final-victory');
   setTimeout(()=>document.body.classList.remove('final-victory'),3600);
   let bonus = 0;
@@ -2055,6 +2113,7 @@ function gameOver(){
     return;
   }
   busy=false; stopChoiceTimer(); setHelperButtons(false); clearRunState();
+  stopMusic(true);
   const label = mode==='endless' ? 'Sonsuz modda '+(level-1)+' tur dayandın!' : 'Bölüm '+Math.min(level,MAX_CLASSIC_LEVEL)+'/'+MAX_CLASSIC_LEVEL+' seviyesine ulaştın!';
   $('gameover-stats').innerHTML=label+'<br>En iyi kombo: '+(S.bestCombo||0)+'x<br>Toplam altın: '+S.coins+' 🪙<br><br>Çok yaklaştın. Bir deneme daha genelde yeter.';
   $('btn-ad-revive').style.display = adUsedThisRun ? 'none' : 'inline-block';
@@ -2062,7 +2121,7 @@ function gameOver(){
 }
 
 async function startGame(m){
-  isPaused=false; stopAllGameAudio();
+  isPaused=false; stopAllGameAudio({immediateMusic:true});
   ensureOnlineState();
   if(m==='classic' || m==='endless'){
     S.online.activeMatch=null;
@@ -2078,7 +2137,7 @@ async function startGame(m){
   startRound();
 }
 async function startCompetitiveGame(source){
-  isPaused=false; stopAllGameAudio();
+  isPaused=false; stopAllGameAudio({immediateMusic:true});
   mode=source;
   level=1; lives=MAX_LIVES; streak=0; adUsedThisRun=false; failuresSinceAd=0;
   playSessionStartedAt=Date.now(); consecutiveLifeLosses=0; longPlayRestTriggeredThisRun=false;
@@ -2153,15 +2212,9 @@ $('btn-eliminate').addEventListener('click',async ()=>{
   $('status-msg').textContent='🎯 Yanlış bardak elendi!';
 });
 
-/* ---------- Reklam simülasyonu ---------- */
-function playAd(){
-  // Gerçek ödüllü reklam eklenecek aşamaya kadar ekranda reklam bildirimi gösterme.
-  if(!AD_NOTICES_ENABLED) return Promise.resolve();
-  return Promise.resolve();
-}
+/* ---------- Direkt devam ---------- */
 $('btn-ad-revive').addEventListener('click',async ()=>{
   modal('modal-gameover',false);
-  await playAd();
   adUsedThisRun=true; lives=1;
   updateHUD();
   await saveRunState();
@@ -2183,13 +2236,39 @@ $('btn-claim-daily').addEventListener('click',async ()=>{
 
 /* ---------- Market ---------- */
 let shopTab='cup';
+const SHOP_DEFS={
+  cup:{list:CUP_SKINS, ownedKey:'ownedCups', selectedKey:'cupSkin', desc:'İlk 10 bölümde bardak olarak görünür'},
+  ball:{list:BALL_SKINS, ownedKey:'ownedBalls', selectedKey:'ballSkin', desc:'İlk 10 bölümde top olarak kullanılır'},
+  table:{list:TABLE_SKINS, ownedKey:'ownedTables', selectedKey:'tableSkin', desc:'Oyun masası görünümünü değiştirir'},
+  background:{list:BACKGROUND_SKINS, ownedKey:'ownedBackgrounds', selectedKey:'backgroundSkin', desc:'Oyun arka planını değiştirir'},
+  music:{list:MUSIC_SKINS, ownedKey:'ownedMusic', selectedKey:'musicSkin', desc:'Oyun müziğinin havasını değiştirir'}
+};
+function shopDef(tab=shopTab){ return SHOP_DEFS[tab]||SHOP_DEFS.cup; }
+function shopPreviewFor(tab,sk){
+  if(tab==='cup') return '<div class="skin-preview-frame"><div class="skin-preview-cup" style="background:'+sk.css+'"></div></div>';
+  if(tab==='ball'){
+    const icon=sk.icon ? '<span class="skin-sport-icon">'+sk.icon+'</span>' : '';
+    return '<div class="skin-preview-frame ball-frame"><div class="skin-preview-ball" style="background:'+sk.css+'"></div>'+icon+'</div>';
+  }
+  if(tab==='table'){
+    return '<div class="skin-preview-frame table-frame"><div class="skin-preview-table" style="background:'+sk.css+';border-color:'+(sk.edge||'rgba(255,255,255,.2)')+'"></div></div>';
+  }
+  if(tab==='background'){
+    return '<div class="skin-preview-frame bg-frame"><div class="skin-preview-bg" style="background:'+backgroundPreviewFor(sk)+'"></div></div>';
+  }
+  return '<div class="skin-preview-frame music-frame"><div class="skin-preview-music">'+(sk.icon||'♪')+'</div></div>';
+}
+function shopInfoTextFor(tab,sk){
+  if(tab==='cup' || tab==='ball') return perkTextFor(sk);
+  return sk.note || 'Kozmetik market ürünü';
+}
 function renderShop(){
   sanitizeState();
   const grid=$('shop-grid');grid.innerHTML='';
-  const list = shopTab==='cup'?CUP_SKINS:BALL_SKINS;
-  const owned = shopTab==='cup'?S.ownedCups:S.ownedBalls;
-  const selected = shopTab==='cup'?S.cupSkin:S.ballSkin;
-  list.forEach(sk=>{
+  const def=shopDef();
+  const owned=S[def.ownedKey]||[];
+  const selected=S[def.selectedKey];
+  def.list.forEach(sk=>{
     const card=document.createElement('div');
     const isOwned=owned.includes(sk.id);
     const isSelected=selected===sk.id;
@@ -2201,13 +2280,10 @@ function renderShop(){
     card.tabIndex=isOwned?0:-1;
     card.setAttribute('role',isOwned?'button':'group');
     card.setAttribute('aria-label',sk.name+(isSelected?' seçili':isOwned?' seçilebilir':' satın alınabilir'));
-    const icon = shopTab==='ball' && sk.icon ? '<span class="skin-sport-icon">'+sk.icon+'</span>' : '';
-    const prev = shopTab==='cup'
-      ? '<div class="skin-preview-frame"><div class="skin-preview-cup" style="background:'+sk.css+'"></div></div>'
-      : '<div class="skin-preview-frame ball-frame"><div class="skin-preview-ball" style="background:'+sk.css+'"></div>'+icon+'</div>';
+    const prev=shopPreviewFor(shopTab,sk);
     const status = isSelected ? 'Seçili' : isOwned ? 'Sahip olduğun ürün' : 'Kilitli ürün';
-    const perkLine=perkTextFor(sk);
-    const desc = shopTab==='cup' ? 'İlk 10 bölümde bardak olarak görünür' : 'İlk 10 bölümde top olarak kullanılır';
+    const perkLine=shopInfoTextFor(shopTab,sk);
+    const desc=def.desc;
     let btn;
     if(isSelected){
       btn='<button class="btn skin-btn equipped" data-act="select" data-id="'+sk.id+'">✔ Kullanılıyor</button>';
@@ -2231,25 +2307,31 @@ function renderShop(){
   });
 }
 async function applyShopAction(id,act){
-  const list = shopTab==='cup'?CUP_SKINS:BALL_SKINS;
-  const sk=list.find(s=>s.id===id);
+  const def=shopDef();
+  const sk=def.list.find(s=>s.id===id);
   if(!sk) return;
-  const owned = shopTab==='cup'?S.ownedCups:S.ownedBalls;
+  const owned=S[def.ownedKey]||[];
+  const price=Math.max(0,Number(sk.price)||0);
   if(act==='buy'){
     if(owned.includes(id)){ act='select'; }
     else{
-      if(S.coins<sk.price){ msgModal('🪙','Yetersiz altın','Bu ürün için '+sk.price+' altın gerekiyor. Oyna ve kazan!'); return; }
-      S.coins-=sk.price;
+      if(S.coins<price){ msgModal('🪙','Yetersiz altın','Bu ürün için '+price+' altın gerekiyor. Oyna ve kazan!'); return; }
+      S.coins-=price;
       owned.push(id);
+      S[def.ownedKey]=owned;
       sndCoin();
       act='select';
     }
   }
   if(act==='select'){
     if(!owned.includes(id)){ msgModal('🔒','Önce satın al','Bu ürünü kullanmak için önce satın almalısın.'); return; }
-    if(shopTab==='cup') S.cupSkin=id; else S.ballSkin=id;
+    S[def.selectedKey]=id;
+    if(shopTab==='music') restartMusicForSelection();
   }
-  await saveState();refreshMenu();renderShop();
+  await saveState();
+  if(currentScreenId==='screen-game') applyGameCosmetics();
+  if(shopTab==='music') updateAudioButtons();
+  refreshMenu();renderShop();
 }
 $('shop-grid').addEventListener('click',async e=>{
   const b=e.target.closest('button[data-act]');
@@ -2262,8 +2344,8 @@ $('shop-grid').addEventListener('keydown',async e=>{
   const card=e.target.closest('.shop-card[data-owned="true"]');
   if(card){ e.preventDefault(); await applyShopAction(card.dataset.id,'select'); }
 });
-document.querySelectorAll('.tab').forEach(t=>t.addEventListener('click',()=>{
-  document.querySelectorAll('.tab').forEach(x=>x.classList.remove('active'));
+document.querySelectorAll('#screen-shop .tab').forEach(t=>t.addEventListener('click',()=>{
+  document.querySelectorAll('#screen-shop .tab').forEach(x=>x.classList.remove('active'));
   t.classList.add('active');shopTab=t.dataset.tab;renderShop();
 }));
 
@@ -2277,7 +2359,7 @@ async function pauseGame(){
   isPaused=true;
   pauseAdBusy=true;
   await saveRunState();
-  stopAllGameAudio();
+  stopAllGameAudio({immediateMusic:true});
   $('pause-stats').innerHTML='Bölüm '+level+(mode==='classic'?'/'+MAX_CLASSIC_LEVEL:'')+'<br>Can: '+lives+'/'+MAX_LIVES+' • Kombo: '+streak+'x';
   modal('modal-pause',true);
   pauseAdBusy=false;
@@ -2286,6 +2368,7 @@ function resumePausedGame(){
   modal('modal-pause',false);
   isPaused=false;
   choiceLastTick=performance.now();
+  startMusic();
 }
 
 /* ---------- Menü / navigasyon ---------- */
@@ -2299,22 +2382,22 @@ function refreshMenu(){
 }
 $('btn-pause').addEventListener('click',pauseGame);
 $('btn-pause-resume').addEventListener('click',resumePausedGame);
-$('btn-pause-menu').addEventListener('click',async ()=>{modal('modal-pause',false);isPaused=false;busy=false;guessing=false;stopChoiceTimer();stopAllGameAudio();await clearRunState();refreshMenu();showScreen('screen-menu');});
+$('btn-pause-menu').addEventListener('click',async ()=>{modal('modal-pause',false);isPaused=false;busy=false;guessing=false;stopChoiceTimer();stopAllGameAudio({immediateMusic:true});await clearRunState();refreshMenu();showScreen('screen-menu');});
 $('btn-classic').addEventListener('click',()=>startGame('classic'));
 $('btn-endless').addEventListener('click',()=>startGame('endless'));
-$('btn-levels').addEventListener('click',()=>{stopAllGameAudio();renderLevelMap();showScreen('screen-levels');});
+$('btn-levels').addEventListener('click',()=>{stopAllGameAudio({immediateMusic:true});renderLevelMap();showScreen('screen-levels');});
 $('btn-levels-back').addEventListener('click',()=>{refreshMenu();showScreen('screen-menu');});
-$('btn-missions').addEventListener('click',()=>{stopAllGameAudio();ensureDailyStats();renderMissions();showScreen('screen-missions');});
+$('btn-missions').addEventListener('click',()=>{stopAllGameAudio({immediateMusic:true});ensureDailyStats();renderMissions();showScreen('screen-missions');});
 $('btn-missions-back').addEventListener('click',()=>{refreshMenu();showScreen('screen-menu');});
 $('missions-list').addEventListener('click',e=>{ const b=e.target.closest('button[data-mission]'); if(b) claimMission(b.dataset.mission); });
-$('btn-league').addEventListener('click',()=>{stopAllGameAudio();ensureWeeklyLeague();renderWeeklyLeague();showScreen('screen-league');});
+$('btn-league').addEventListener('click',()=>{stopAllGameAudio({immediateMusic:true});ensureWeeklyLeague();renderWeeklyLeague();showScreen('screen-league');});
 $('btn-league-back').addEventListener('click',()=>{refreshMenu();showScreen('screen-menu');});
-$('btn-shop').addEventListener('click',()=>{stopAllGameAudio();showScreen('screen-shop');renderShop();});
-$('btn-shop-back').addEventListener('click',()=>{stopAllGameAudio();refreshMenu();showScreen('screen-menu');});
-$('btn-friends').addEventListener('click',()=>{stopAllGameAudio();showScreen('screen-friends');});
+$('btn-shop').addEventListener('click',()=>{stopAllGameAudio({immediateMusic:true});showScreen('screen-shop');renderShop();});
+$('btn-shop-back').addEventListener('click',()=>{stopAllGameAudio({immediateMusic:true});refreshMenu();showScreen('screen-menu');});
+$('btn-friends').addEventListener('click',()=>{stopAllGameAudio({immediateMusic:true});showScreen('screen-friends');});
 $('btn-friends-back').addEventListener('click',()=>{refreshMenu();showScreen('screen-menu');});
-$('btn-create-room').addEventListener('click',()=>createRoomMock());
-$('btn-join-room').addEventListener('click',()=>joinRoomMock($('room-code-input').value));
+$('btn-create-room').addEventListener('click',()=>createRoom());
+$('btn-join-room').addEventListener('click',()=>joinRoom($('room-code-input').value));
 $('room-code-input').addEventListener('input',e=>{ e.target.value=String(e.target.value||'').replace(/\D/g,'').slice(0,4); });
 $('room-code-input').addEventListener('keydown',e=>{ if(e.key==='Enter') $('btn-join-room').click(); });
 $('btn-room-leave').addEventListener('click',()=>leaveRoomMock());
@@ -2354,40 +2437,48 @@ $('btn-room-start').addEventListener('click',()=>{
 });
 $('btn-chat-send').addEventListener('click',async ()=>{
   const input=$('chat-input');
-  await sendChatMock(input.value);
+  await sendChatMessage(input.value);
   input.value='';
 });
 $('chat-input').addEventListener('keydown',e=>{ if(e.key==='Enter') $('btn-chat-send').click(); });
-$('emoji-row').addEventListener('click',e=>{ const b=e.target.closest('button'); if(b) sendEmojiMock(b.textContent); });
+$('emoji-row').addEventListener('click',e=>{ const b=e.target.closest('button'); if(b) sendChatMessage(b.textContent); });
+$('btn-race-chat-send').addEventListener('click',async ()=>{
+  const input=$('race-chat-input');
+  await sendChatMessage(input.value);
+  input.value='';
+});
+$('race-chat-input').addEventListener('keydown',e=>{ if(e.key==='Enter') $('btn-race-chat-send').click(); });
+$('race-emoji-row').addEventListener('click',e=>{ const b=e.target.closest('button'); if(b) sendChatMessage(b.textContent); });
 $('btn-game-chat-send').addEventListener('click',async ()=>{
   const input=$('game-chat-input');
-  await sendChatMock(input.value);
+  await sendChatMessage(input.value);
   input.value='';
 });
 $('game-chat-input').addEventListener('keydown',e=>{ if(e.key==='Enter') $('btn-game-chat-send').click(); });
 $('game-chat-input').addEventListener('focus',()=>{ const p=$('game-chat'); if(p) p.classList.remove('soft'); });
+$('game-emoji-row').addEventListener('click',e=>{ const b=e.target.closest('button'); if(b) sendChatMessage(b.textContent); });
 $('btn-race-play').addEventListener('click',()=>beginCompetitiveGame());
 $('btn-race-room').addEventListener('click',()=>{renderRoom();showScreen('screen-room');});
 $('btn-race-menu').addEventListener('click',async ()=>{ensureOnlineState();S.online.activeMatch=null;await saveState();refreshMenu();showScreen('screen-menu');});
-$('btn-matchmaking').addEventListener('click',()=>{stopAllGameAudio();renderMatchmaking();showScreen('screen-matchmaking');});
+$('btn-matchmaking').addEventListener('click',()=>{stopAllGameAudio({immediateMusic:true});renderMatchmaking();showScreen('screen-matchmaking');});
 $('btn-matchmaking-back').addEventListener('click',()=>{if(mockSearchTimer) clearTimeout(mockSearchTimer);refreshMenu();showScreen('screen-menu');});
-$('btn-find-match').addEventListener('click',async e=>{const btn=e.currentTarget;btn.disabled=true;await findMatchMock();btn.disabled=false;});
+$('btn-find-match').addEventListener('click',async e=>{const btn=e.currentTarget;btn.disabled=true;await findMatch();btn.disabled=false;});
 $('btn-start-found-match').addEventListener('click',()=>beginCompetitiveGame());
-$('btn-tournament').addEventListener('click',()=>{stopAllGameAudio();renderTournament();showScreen('screen-tournament');});
+$('btn-tournament').addEventListener('click',()=>{stopAllGameAudio({immediateMusic:true});renderTournament();showScreen('screen-tournament');});
 $('btn-tournament-back').addEventListener('click',()=>{refreshMenu();showScreen('screen-menu');});
-$('tournament-list').addEventListener('click',e=>{ const b=e.target.closest('button[data-tournament]'); if(b) startTournamentMock(b.dataset.tournament); });
+$('tournament-list').addEventListener('click',e=>{ const b=e.target.closest('button[data-tournament]'); if(b) createTournament(b.dataset.tournament); });
 $('btn-tournament-play').addEventListener('click',()=>prepareTournamentRound());
-$('btn-quit').addEventListener('click',async ()=>{isPaused=false;busy=false;guessing=false;stopChoiceTimer();stopAllGameAudio();await clearRunState();refreshMenu();showScreen('screen-menu');});
+$('btn-quit').addEventListener('click',async ()=>{isPaused=false;busy=false;guessing=false;stopChoiceTimer();stopAllGameAudio({immediateMusic:true});await clearRunState();refreshMenu();showScreen('screen-menu');});
 $('btn-retry').addEventListener('click',()=>{modal('modal-gameover',false);startGame(mode);});
-$('btn-go-menu').addEventListener('click',async ()=>{modal('modal-gameover',false);isPaused=false;busy=false;guessing=false;stopChoiceTimer();stopAllGameAudio();await clearRunState();refreshMenu();showScreen('screen-menu');});
+$('btn-go-menu').addEventListener('click',async ()=>{modal('modal-gameover',false);isPaused=false;busy=false;guessing=false;stopChoiceTimer();stopAllGameAudio({immediateMusic:true});await clearRunState();refreshMenu();showScreen('screen-menu');});
 $('btn-msg-ok').addEventListener('click',()=>modal('modal-msg',false));
 $('btn-complete-retry').addEventListener('click',()=>{modal('modal-complete',false);startGame('classic');});
-$('btn-complete-menu').addEventListener('click',async ()=>{modal('modal-complete',false);isPaused=false;stopAllGameAudio();await clearRunState();refreshMenu();showScreen('screen-menu');});
+$('btn-complete-menu').addEventListener('click',async ()=>{modal('modal-complete',false);isPaused=false;stopAllGameAudio({immediateMusic:true});await clearRunState();refreshMenu();showScreen('screen-menu');});
 $('btn-resume-run').addEventListener('click',async ()=>{
   modal('modal-resume',false);
   const run=pendingResumeRun;
   if(!run){ checkDaily(); return; }
-  isPaused=false; stopAllGameAudio();
+  isPaused=false; stopAllGameAudio({immediateMusic:true});
   mode=run.mode||'classic'; level=Math.max(1,Math.min(Number(run.level)||1, mode==='classic'?MAX_CLASSIC_LEVEL:9999));
   lives=Math.max(1,Math.min(Number(run.lives)||MAX_LIVES,MAX_LIVES));
   streak=Math.max(0,Number(run.streak)||0);
@@ -2424,11 +2515,12 @@ $('player-name-input').addEventListener('keydown',e=>{ if(e.key==='Enter') $('bt
 
 /* ---------- V21: Müzik / ses düğmeleri ---------- */
 function updateAudioButtons(){
+  const silentMusic=!!selectedMusicSkin().silent;
   ['btn-music','btn-music-top'].forEach(id=>{
     const b=$(id); if(!b) return;
-    b.classList.toggle('off',!S.musicOn);
-    b.title=S.musicOn?'Müziği kapat':'Müziği aç';
-    b.setAttribute('aria-pressed',S.musicOn?'true':'false');
+    b.classList.toggle('off',!S.musicOn || silentMusic);
+    b.title=silentMusic?'Markette Sessiz müzik seçili':(S.musicOn?'Müziği kapat':'Müziği aç');
+    b.setAttribute('aria-pressed',(S.musicOn && !silentMusic)?'true':'false');
   });
   ['btn-sfx','btn-sfx-top'].forEach(id=>{
     const b=$(id); if(!b) return;
@@ -2440,7 +2532,7 @@ function updateAudioButtons(){
 }
 async function toggleMusic(){
   S.musicOn=!S.musicOn;
-  if(S.musicOn) startMusic(); else stopMusic();
+  if(S.musicOn) startMusic(); else stopMusic(true);
   updateAudioButtons();
   await saveState();
 }
@@ -2454,9 +2546,9 @@ async function toggleSfx(){
 ['btn-sfx','btn-sfx-top'].forEach(id=>{ const b=$(id); if(b) b.addEventListener('click',toggleSfx); });
 
 // Tarayıcılar sesi ilk kullanıcı dokunuşundan önce başlatmaz;
-// ilk dokunuşta müzik sessizce devreye girer.
+// ilk dokunuş yalnızca AudioContext'i hazırlar, müzik oyun ekranında başlar.
 function primeAudioOnFirstGesture(){
-  const kick=()=>{ ensureAudio(); if(S.musicOn) startMusic(); };
+  const kick=()=>{ ensureAudio(); if(musicAllowed()) startMusic(); };
   ['pointerdown','touchstart','keydown'].forEach(ev=>
     document.addEventListener(ev,kick,{once:true,passive:true}));
 }

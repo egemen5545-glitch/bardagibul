@@ -80,11 +80,24 @@
   <div id="zone-badge">Mavi Eğitim</div>
   <div class="timer-wrap"><div id="timer-fill"></div></div>
   <div id="status-msg"></div>
+  <div id="game-social" class="game-social" aria-hidden="true">
+    <div class="game-side me">
+      <div id="game-bubble-me" class="game-bubble"></div>
+      <div id="game-avatar-me" class="game-avatar">⭐</div>
+    </div>
+    <div class="game-side rival">
+      <div id="game-bubble-rival" class="game-bubble"></div>
+      <div id="game-avatar-rival" class="game-avatar">🎱</div>
+    </div>
+  </div>
   <div id="table-wrap"><div id="table"><div id="ball"></div></div></div>
   <div id="game-chat" class="game-chat soft">
-    <div id="game-chat-list" class="chat-list game-chat-list"></div>
+    <div class="emoji-row game-emoji-row" id="game-emoji-row">
+      <button>😂</button><button>😎</button><button>👀</button><button>🎯</button>
+      <button>🔥</button><button>👏</button>
+    </div>
     <div class="chat-compose game-chat-compose">
-      <input id="game-chat-input" class="online-input" type="text" maxlength="80" placeholder="Mesaj...">
+      <input id="game-chat-input" class="online-input" type="text" maxlength="20" placeholder="Mesaj...">
       <button class="btn small" id="btn-game-chat-send">➤</button>
     </div>
   </div>
@@ -129,6 +142,9 @@
   <div class="tabs">
     <button class="tab active" data-tab="cup">🥤 Bardaklar</button>
     <button class="tab" data-tab="ball">⚪ Toplar</button>
+    <button class="tab" data-tab="table">🎱 Masalar</button>
+    <button class="tab" data-tab="background">🌌 Arka Planlar</button>
+    <button class="tab" data-tab="music">🎵 Müzikler</button>
   </div>
   <div id="shop-grid"></div>
   <button class="btn small secondary" id="btn-shop-back" style="margin-top:10px">← Geri</button>
@@ -189,6 +205,17 @@
   <h1 class="logo page-logo">YARIŞMA</h1>
   <p class="tagline online-note" id="race-note">Local/mock maç hazırlanıyor.</p>
   <div id="race-scoreboard" class="race-scoreboard"></div>
+  <div class="chat-panel race-chat-panel">
+    <div id="race-chat-list" class="chat-list"></div>
+    <div class="emoji-row" id="race-emoji-row">
+      <button>😂</button><button>😎</button><button>😡</button><button>👀</button>
+      <button>🎯</button><button>🔥</button><button>💀</button><button>👏</button>
+    </div>
+    <div class="chat-compose">
+      <input id="race-chat-input" class="online-input" type="text" maxlength="80" placeholder="Mesaj yaz...">
+      <button class="btn small" id="btn-race-chat-send">Gönder</button>
+    </div>
+  </div>
   <div class="race-actions">
     <button class="btn" id="btn-race-play">Maça Başla</button>
     <button class="btn small secondary" id="btn-race-room">Odaya Dön</button>
@@ -240,21 +267,11 @@
     <div class="big-emoji">💔</div>
     <h2>Oyun Bitti!</h2>
     <p id="gameover-stats"></p>
-    <button class="btn small" id="btn-ad-revive">▶️ Devam Et: +1 Can</button><br>
+    <button class="btn small" id="btn-ad-revive">▶️ Direkt Devam: +1 Can</button><br>
     <button class="btn small secondary" id="btn-retry">🔄 Tekrar Oyna</button>
     <button class="btn small secondary" id="btn-go-menu">🏠 Ana Menü</button>
   </div>
 </div>
-
-<!-- ======== AD MODAL (simülasyon) ======== -->
-<div class="modal-back" id="modal-ad">
-  <div class="modal">
-    <div class="big-emoji">📺</div>
-    <h2>Reklam</h2>
-    <p>Reklam oynatılıyor…<br><span id="ad-count" style="font-size:34px;font-family:'Nunito',system-ui,sans-serif;font-weight:900;color:var(--gold)">10</span></p>
-  </div>
-</div>
-
 
 <!-- ======== FIRST NAME MODAL ======== -->
 <div class="modal-back" id="modal-name">
@@ -301,15 +318,6 @@
   </div>
 </div>
 
-<!-- ======== AD BREAK MODAL (simülasyon) ======== -->
-<div class="modal-back" id="modal-adbreak">
-  <div class="modal">
-    <div class="big-emoji">🎬</div>
-    <h2>Kısa Mola</h2>
-    <p>Bir sonraki bölüme hazırlanılıyor…<br><span id="adbreak-count" style="font-size:34px;font-family:'Nunito',system-ui,sans-serif;font-weight:900;color:var(--gold)">10</span></p>
-  </div>
-</div>
-
 <!-- ======== GENERIC MSG MODAL ======== -->
 <div class="modal-back" id="modal-msg">
   <div class="modal">
@@ -321,6 +329,7 @@
 </div>
 
 
+<script src="./firebase-service.js"></script>
 <script src="./script.js"></script>
 </body>
 </html>

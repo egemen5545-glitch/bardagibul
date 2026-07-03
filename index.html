@@ -142,6 +142,9 @@
   <div class="tabs">
     <button class="tab active" data-tab="cup">🥤 Bardaklar</button>
     <button class="tab" data-tab="ball">⚪ Toplar</button>
+    <button class="tab" data-tab="table">🎱 Masalar</button>
+    <button class="tab" data-tab="background">🌌 Arka Planlar</button>
+    <button class="tab" data-tab="music">🎵 Müzikler</button>
   </div>
   <div id="shop-grid"></div>
   <button class="btn small secondary" id="btn-shop-back" style="margin-top:10px">← Geri</button>
@@ -264,21 +267,11 @@
     <div class="big-emoji">💔</div>
     <h2>Oyun Bitti!</h2>
     <p id="gameover-stats"></p>
-    <button class="btn small" id="btn-ad-revive">▶️ Devam Et: +1 Can</button><br>
+    <button class="btn small" id="btn-ad-revive">▶️ Direkt Devam: +1 Can</button><br>
     <button class="btn small secondary" id="btn-retry">🔄 Tekrar Oyna</button>
     <button class="btn small secondary" id="btn-go-menu">🏠 Ana Menü</button>
   </div>
 </div>
-
-<!-- ======== AD MODAL (simülasyon) ======== -->
-<div class="modal-back" id="modal-ad">
-  <div class="modal">
-    <div class="big-emoji">📺</div>
-    <h2>Reklam</h2>
-    <p>Reklam oynatılıyor…<br><span id="ad-count" style="font-size:34px;font-family:'Nunito',system-ui,sans-serif;font-weight:900;color:var(--gold)">10</span></p>
-  </div>
-</div>
-
 
 <!-- ======== FIRST NAME MODAL ======== -->
 <div class="modal-back" id="modal-name">
@@ -325,15 +318,6 @@
   </div>
 </div>
 
-<!-- ======== AD BREAK MODAL (simülasyon) ======== -->
-<div class="modal-back" id="modal-adbreak">
-  <div class="modal">
-    <div class="big-emoji">🎬</div>
-    <h2>Kısa Mola</h2>
-    <p>Bir sonraki bölüme hazırlanılıyor…<br><span id="adbreak-count" style="font-size:34px;font-family:'Nunito',system-ui,sans-serif;font-weight:900;color:var(--gold)">10</span></p>
-  </div>
-</div>
-
 <!-- ======== GENERIC MSG MODAL ======== -->
 <div class="modal-back" id="modal-msg">
   <div class="modal">
@@ -345,6 +329,7 @@
 </div>
 
 
+<script src="./firebase-service.js"></script>
 <script src="./script.js"></script>
 </body>
 </html>
