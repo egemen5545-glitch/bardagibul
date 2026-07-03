@@ -109,7 +109,6 @@ const RUN_SAVE_KEY = 'bardagibul-active-run';
 const MOCK_MATCH_ROUNDS = 5;
 const MOCK_MATCH_ENTRY_FEE = 40;
 const MOCK_MATCH_REWARD = 75;
-const TESTER_COIN_FLOOR = 100000; // Test icin kullanici istegi: tum market secenekleri denenebilsin.
 
 /* ---------- Kalıcı kayıt (window.storage → localStorage → bellek) ---------- */
 const memStore = {};
@@ -142,7 +141,7 @@ const S = {
   musicOn:true, sfxOn:true,
   bestCombo:0, campaignCompleted:false, playerName:'', avatar:'⭐', dailyStats:null,
   starterCoinsGiven:false, weeklyLeague:null, weeklyBadge:'',
-  elo:1000, userId:'', online:null
+  elo:1000, userId:'', testCoinFloorRemoved:false, online:null
 };
 function makeLocalUserId(){
   try{ if(window.crypto && window.crypto.randomUUID) return window.crypto.randomUUID(); }catch(e){}
@@ -204,7 +203,7 @@ function ensureOnlineState(){
 function sanitizeState(){
   if(!AVATAR_LIST.includes(S.avatar)) S.avatar=AVATAR_LIST[0];
   if(!S.userId || typeof S.userId!=='string') S.userId=makeLocalUserId();
-  S.coins=Math.max(TESTER_COIN_FLOOR, Number(S.coins)||0);
+  S.coins=Math.max(0, Number(S.coins)||0);
   S.ownedCups = uniqueList(S.ownedCups);
   S.ownedBalls = uniqueList(S.ownedBalls);
   S.ownedTables = uniqueList(S.ownedTables);
@@ -234,6 +233,11 @@ async function saveState(){ sanitizeState(); await store.set('bardagibul-save', 
 async function loadState(){
   const raw = await store.get('bardagibul-save');
   if(raw){ try{ Object.assign(S, JSON.parse(raw)); }catch(e){} }
+  if(!S.testCoinFloorRemoved && Number(S.coins)===100000){
+    S.coins = 50;
+    S.starterCoinsGiven = true;
+    S.testCoinFloorRemoved = true;
+  }
   // V21: eski "muted" ayarı yeni müzik/ses ayarlarına taşınır.
   if(typeof S.sfxOn!=='boolean') S.sfxOn = !S.muted;
   if(typeof S.musicOn!=='boolean') S.musicOn = true;
@@ -870,11 +874,18 @@ const TOURNAMENT_TYPES={
 };
 let mockSearchTimer=null;
 const gameChatTimers={me:null,rival:null};
+let firebaseRoomUnsubscribe=null;
 function onlineName(){ return S.playerName || 'Sen'; }
 function onlineAvatar(){ return AVATAR_LIST.includes(S.avatar) ? S.avatar : AVATAR_LIST[0]; }
 function onlinePlayerPayload(){
   sanitizeState();
   return {userId:S.userId,name:onlineName(),avatar:onlineAvatar(),elo:S.elo};
+}
+function stopRoomListener(){
+  if(firebaseRoomUnsubscribe){
+    try{ firebaseRoomUnsubscribe(); }catch(e){}
+    firebaseRoomUnsubscribe=null;
+  }
 }
 function mockOpponentName(seed=''){
   const source=String(seed||Date.now());
@@ -909,6 +920,100 @@ function makeRoom(code,joined=false){
     players,
     chat:[systemChat(joined ? rival+' odaya katıldı.' : 'Oda oluşturuldu. Kodu arkadaşına gönder.')]
   };
+}
+function firebaseChatToLocal(item){
+  const from=item && item.from ? item.from : {};
+  const userId=from.userId || from.id || '';
+  const isSystem=userId==='system' || from.name==='Sistem';
+  return {
+    from:isSystem?'system':userId===S.userId?'me':'rival',
+    name:from.name || (isSystem?'Sistem':'Oyuncu'),
+    avatar:from.avatar || (isSystem?'ℹ️':'🎱'),
+    text:String((item&&item.text)||'').slice(0,160),
+    at:Number(item&&item.atMs)||Date.now()
+  };
+}
+function firebaseRoomToLocal(remote, fallbackCode){
+  const data=(remote&&remote.data)||remote||{};
+  const code=String(data.code || fallbackCode || data.id || roomCode());
+  const players=Array.isArray(data.players) ? data.players : [];
+  const mapped=players.map((p,idx)=>({
+    id:p.userId===S.userId?'me':'rival'+idx,
+    userId:p.userId||p.id||'',
+    name:p.name || (p.userId===S.userId?onlineName():'Rakip'),
+    avatar:p.avatar || (p.userId===S.userId?onlineAvatar():'🎱'),
+    ready:!!p.ready,
+    host:!!p.host || data.hostUserId===p.userId,
+    elo:Number(p.elo)||S.elo
+  }));
+  if(!mapped.some(p=>p.id==='me')){
+    mapped.unshift({id:'me',userId:S.userId,name:onlineName(),avatar:onlineAvatar(),ready:false,host:!mapped.length,elo:S.elo});
+  }
+  const me=mapped.find(p=>p.id==='me');
+  return {
+    code,
+    firebase:true,
+    createdAt:Number(data.createdAtMs)||Date.now(),
+    ready:!!(me&&me.ready),
+    rounds:Number(data.rounds)||5,
+    players:mapped,
+    chat:(Array.isArray(data.chat)?data.chat:[]).map(firebaseChatToLocal)
+  };
+}
+async function startRoomListener(code){
+  stopRoomListener();
+  if(typeof listenRoom!=='function') return;
+  try{
+    const unsub=await listenRoom(code,room=>{
+      if(!room) return;
+      ensureOnlineState();
+      S.online.room=firebaseRoomToLocal(room,code);
+      saveState();
+      if(currentScreenId==='screen-room') renderRoom();
+      renderAllChatViews();
+    });
+    if(typeof unsub==='function') firebaseRoomUnsubscribe=unsub;
+  }catch(e){}
+}
+async function createRoomOnline(){
+  ensureOnlineState();
+  const service=typeof createRoom==='function' ? createRoom : null;
+  if(!service) return createRoomMock();
+  const result=await service({player:onlinePlayerPayload(),rounds:5});
+  if(result && result.data){
+    S.online.room=firebaseRoomToLocal(result.data,result.code||result.id);
+    S.online.pendingMatch=null;
+    await saveState();
+    renderRoom();
+    showScreen('screen-room');
+    startRoomListener(S.online.room.code);
+    return S.online.room;
+  }
+  if(S.online.room){ renderRoom(); showScreen('screen-room'); return S.online.room; }
+  return createRoomMock();
+}
+async function joinRoomOnline(code){
+  const normalized=normalizeRoomCode(code);
+  if(!normalized){ msgModal('🔑','Kod gerekli','Odaya katılmak için davet kodunu yazmalısın.'); return null; }
+  if(!isValidRoomCode(normalized)){ msgModal('🔑','Hatalı kod','Kod 4 haneli sayı olmalı.'); return null; }
+  const service=typeof joinRoom==='function' ? joinRoom : null;
+  if(!service) return joinRoomMock(normalized);
+  const result=await service(normalized,onlinePlayerPayload());
+  if(result && result.data){
+    S.online.room=firebaseRoomToLocal(result.data,normalized);
+    S.online.pendingMatch=null;
+    await saveState();
+    renderRoom();
+    showScreen('screen-room');
+    startRoomListener(S.online.room.code);
+    return S.online.room;
+  }
+  if(S.online.room){ renderRoom(); showScreen('screen-room'); return S.online.room; }
+  return null;
+}
+async function leaveRoomOnline(){
+  stopRoomListener();
+  await leaveRoomMock();
 }
 async function createRoomMock(){
   ensureOnlineState();
@@ -1017,6 +1122,35 @@ async function sendChatMock(message){
 }
 async function sendEmojiMock(emoji){
   await sendChatMock(emoji);
+}
+async function sendChatOnline(message){
+  ensureOnlineState();
+  const text=String(message||'').trim();
+  if(!text) return;
+  const target=activeChatTarget();
+  if(!target) return;
+  const room=S.online.room;
+  const match=activeChatMatch();
+  const service=typeof sendChatMessage==='function' ? sendChatMessage : null;
+  if(service && target.kind==='room' && room && room.firebase){
+    const sent=await service(room.code,text,Object.assign({},onlinePlayerPayload(),{targetType:'room'}));
+    if(sent) return;
+  }
+  if(service && target.kind==='match' && match && match.firebaseMatchId){
+    const sent=await service(match.firebaseMatchId,text,Object.assign({},onlinePlayerPayload(),{targetType:'match'}));
+    if(sent){
+      target.chat.push({from:'me',name:onlineName(),avatar:onlineAvatar(),text:text.slice(0,80),at:Date.now()});
+      trimChat(target.owner);
+      await saveState();
+      renderAllChatViews();
+      showGameChatBubble('me',text);
+      return;
+    }
+  }
+  await sendChatMock(text);
+}
+async function sendEmojiOnline(emoji){
+  await sendChatOnline(emoji);
 }
 function calculateMatchReward(kind='match'){
   if(kind==='friend') return {entry:0,prize:40};
@@ -1155,6 +1289,35 @@ async function startTournamentMock(type){
   const shuffled=MOCK_RIVAL_NAMES.slice().sort(()=>Math.random()-.5);
   S.online.tournament={
     type:cup.id,
+    status:'active',
+    roundIndex:0,
+    participants:[onlineName(),...shuffled.slice(0,7)],
+    route:[shuffled[0],shuffled[1],shuffled[2]],
+    history:[],
+    startedAt:Date.now()
+  };
+  S.online.activeMatch=null;
+  await saveState();
+  refreshMenu();
+  renderTournament();
+}
+async function startTournamentOnline(type){
+  ensureOnlineState();
+  const cup=TOURNAMENT_TYPES[type];
+  if(!cup) return;
+  if(S.coins<cup.entry){ msgModal('🪙','Altın yetersiz','Bu kupaya katılmak için '+cup.entry+' altın gerekiyor.'); return; }
+  const service=typeof createTournament==='function' ? createTournament : null;
+  if(!service) return startTournamentMock(type);
+  const result=await service(type,{player:onlinePlayerPayload()});
+  if(!result || !result.id){
+    if(S.online.tournament) return;
+    return startTournamentMock(type);
+  }
+  S.coins-=cup.entry;
+  const shuffled=MOCK_RIVAL_NAMES.slice().sort(()=>Math.random()-.5);
+  S.online.tournament={
+    type:cup.id,
+    firebaseTournamentId:result.id,
     status:'active',
     roundIndex:0,
     participants:[onlineName(),...shuffled.slice(0,7)],
@@ -2480,11 +2643,11 @@ $('btn-shop').addEventListener('click',()=>{stopAllGameAudio({immediateMusic:tru
 $('btn-shop-back').addEventListener('click',()=>{stopAllGameAudio({immediateMusic:true});refreshMenu();showScreen('screen-menu');});
 $('btn-friends').addEventListener('click',()=>{stopAllGameAudio({immediateMusic:true});showScreen('screen-friends');});
 $('btn-friends-back').addEventListener('click',()=>{refreshMenu();showScreen('screen-menu');});
-$('btn-create-room').addEventListener('click',()=>createRoomMock());
-$('btn-join-room').addEventListener('click',()=>joinRoomMock($('room-code-input').value));
+$('btn-create-room').addEventListener('click',()=>createRoomOnline());
+$('btn-join-room').addEventListener('click',()=>joinRoomOnline($('room-code-input').value));
 $('room-code-input').addEventListener('input',e=>{ e.target.value=String(e.target.value||'').replace(/\D/g,'').slice(0,4); });
 $('room-code-input').addEventListener('keydown',e=>{ if(e.key==='Enter') $('btn-join-room').click(); });
-$('btn-room-leave').addEventListener('click',()=>leaveRoomMock());
+$('btn-room-leave').addEventListener('click',()=>leaveRoomOnline());
 $('btn-copy-room').addEventListener('click',async ()=>{
   const code=(S.online&&S.online.room&&S.online.room.code)||'';
   try{ if(navigator.clipboard) await navigator.clipboard.writeText(code); msgModal('📋','Kod kopyalandı',code); }
@@ -2503,6 +2666,9 @@ $('room-round-select').addEventListener('click',async e=>{
   S.online.room.rounds=Number(b.dataset.rounds)||5;
   await saveState();
   renderRoom();
+  if(S.online.room.firebase && typeof setRoomRounds==='function'){
+    await setRoomRounds(S.online.room.code,S.online.room.rounds);
+  }
 });
 $('btn-room-ready').addEventListener('click',async ()=>{
   ensureOnlineState();
@@ -2513,6 +2679,9 @@ $('btn-room-ready').addEventListener('click',async ()=>{
   S.online.room.chat.push(systemChat(S.online.room.ready?'Hazır oldun.':'Hazır durumundan çıktın.'));
   await saveState();
   renderRoom();
+  if(S.online.room.firebase && typeof setRoomReady==='function'){
+    await setRoomReady(S.online.room.code,Object.assign({},onlinePlayerPayload(),{ready:S.online.room.ready}),S.online.room.ready);
+  }
 });
 $('btn-room-start').addEventListener('click',()=>{
   ensureOnlineState();
@@ -2521,26 +2690,26 @@ $('btn-room-start').addEventListener('click',()=>{
 });
 $('btn-chat-send').addEventListener('click',async ()=>{
   const input=$('chat-input');
-  await sendChatMock(input.value);
+  await sendChatOnline(input.value);
   input.value='';
 });
 $('chat-input').addEventListener('keydown',e=>{ if(e.key==='Enter') $('btn-chat-send').click(); });
-$('emoji-row').addEventListener('click',e=>{ const b=e.target.closest('button'); if(b) sendEmojiMock(b.textContent); });
+$('emoji-row').addEventListener('click',e=>{ const b=e.target.closest('button'); if(b) sendEmojiOnline(b.textContent); });
 $('btn-race-chat-send').addEventListener('click',async ()=>{
   const input=$('race-chat-input');
-  await sendChatMock(input.value);
+  await sendChatOnline(input.value);
   input.value='';
 });
 $('race-chat-input').addEventListener('keydown',e=>{ if(e.key==='Enter') $('btn-race-chat-send').click(); });
-$('race-emoji-row').addEventListener('click',e=>{ const b=e.target.closest('button'); if(b) sendEmojiMock(b.textContent); });
+$('race-emoji-row').addEventListener('click',e=>{ const b=e.target.closest('button'); if(b) sendEmojiOnline(b.textContent); });
 $('btn-game-chat-send').addEventListener('click',async ()=>{
   const input=$('game-chat-input');
-  await sendChatMock(input.value);
+  await sendChatOnline(input.value);
   input.value='';
 });
 $('game-chat-input').addEventListener('keydown',e=>{ if(e.key==='Enter') $('btn-game-chat-send').click(); });
 $('game-chat-input').addEventListener('focus',()=>{ const p=$('game-chat'); if(p) p.classList.remove('soft'); });
-$('game-emoji-row').addEventListener('click',e=>{ const b=e.target.closest('button'); if(b) sendEmojiMock(b.textContent); });
+$('game-emoji-row').addEventListener('click',e=>{ const b=e.target.closest('button'); if(b) sendEmojiOnline(b.textContent); });
 $('btn-race-play').addEventListener('click',()=>beginCompetitiveGame());
 $('btn-race-room').addEventListener('click',()=>{renderRoom();showScreen('screen-room');});
 $('btn-race-menu').addEventListener('click',async ()=>{ensureOnlineState();S.online.activeMatch=null;await saveState();refreshMenu();showScreen('screen-menu');});
@@ -2560,7 +2729,7 @@ $('btn-find-match').addEventListener('click',async e=>{const btn=e.currentTarget
 $('btn-start-found-match').addEventListener('click',()=>beginCompetitiveGame());
 $('btn-tournament').addEventListener('click',()=>{stopAllGameAudio({immediateMusic:true});renderTournament();showScreen('screen-tournament');});
 $('btn-tournament-back').addEventListener('click',()=>{refreshMenu();showScreen('screen-menu');});
-$('tournament-list').addEventListener('click',e=>{ const b=e.target.closest('button[data-tournament]'); if(b) startTournamentMock(b.dataset.tournament); });
+$('tournament-list').addEventListener('click',e=>{ const b=e.target.closest('button[data-tournament]'); if(b) startTournamentOnline(b.dataset.tournament); });
 $('btn-tournament-play').addEventListener('click',()=>prepareTournamentRound());
 $('btn-quit').addEventListener('click',async ()=>{isPaused=false;busy=false;guessing=false;stopChoiceTimer();stopAllGameAudio({immediateMusic:true});await clearRunState();refreshMenu();showScreen('screen-menu');});
 $('btn-retry').addEventListener('click',()=>{modal('modal-gameover',false);startGame(mode);});
@@ -2646,10 +2815,19 @@ function primeAudioOnFirstGesture(){
   ['pointerdown','touchstart','keydown'].forEach(ev=>
     document.addEventListener(ev,kick,{once:true,passive:true}));
 }
+function primeFirebaseOnAppStart(){
+  try{
+    const svc=window.TopBulmacaFirebaseService;
+    if(svc && svc.hasRealConfig && svc.hasRealConfig() && svc.initFirebase){
+      svc.initFirebase().catch(()=>{});
+    }
+  }catch(e){}
+}
 
 /* ---------- Başlat ---------- */
 (async function init(){
   await loadState();
+  primeFirebaseOnAppStart();
   ensureDailyStats();
   ensureWeeklyLeague();
   applyLevelTheme(1);

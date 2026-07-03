@@ -3,7 +3,7 @@
   'use strict';
 
   const FIREBASE_SDK_VERSION = '10.12.5';
-  // Firebase Console degerleri buraya girilecek. Placeholder kaldiginda mock fallback aktif kalir.
+  // Config eksik ya da Firebase hata verirse servisler mock fallback ile devam eder.
   const FIREBASE_CONFIG = {
     apiKey: 'AIzaSyCHwGHZiGjUHNnv8JQD9DQiy3c7ahpDJ2o',
     authDomain: 'topbul-d1981.firebaseapp.com',
@@ -17,6 +17,8 @@
   const state = {
     app: null,
     db: null,
+    auth: null,
+    user: null,
     sdk: null,
     initPromise: null,
     lastError: ''
@@ -41,6 +43,7 @@
       userId: data.userId || data.id || generatedId,
       name: 'Oyuncu',
       avatar: '⭐',
+      authUid: data.authUid || (state.user && state.user.uid) || '',
       elo: 1000,
       ready: false,
       joinedAt: Date.now()
@@ -55,7 +58,6 @@
     const map = {
       createRoom: 'createRoomMock',
       joinRoom: 'joinRoomMock',
-      sendChatMessage: 'sendChatMock',
       findMatch: 'findMatchMock',
       createTournament: 'startTournamentMock'
     };
@@ -74,8 +76,11 @@
       try{
         const appSdk = await import('https://www.gstatic.com/firebasejs/' + FIREBASE_SDK_VERSION + '/firebase-app.js');
         const firestoreSdk = await import('https://www.gstatic.com/firebasejs/' + FIREBASE_SDK_VERSION + '/firebase-firestore.js');
+        const authSdk = await import('https://www.gstatic.com/firebasejs/' + FIREBASE_SDK_VERSION + '/firebase-auth.js');
         state.app = appSdk.initializeApp(FIREBASE_CONFIG);
         state.db = firestoreSdk.getFirestore(state.app);
+        state.auth = authSdk.getAuth(state.app);
+        state.user = state.auth.currentUser || (await authSdk.signInAnonymously(state.auth)).user;
         state.sdk = firestoreSdk;
         state.lastError = '';
         return state;
@@ -96,17 +101,31 @@
     const fb = await initFirebase();
     if(!fb) return fallback('createRoom', arguments, null);
     const sdk = fb.sdk;
-    const code = String((roomData && roomData.code) || code4());
-    const payload = Object.assign({
-      code,
-      status: 'lobby',
-      players: [nowPlayer(roomData && roomData.player)],
-      rounds: 5,
-      createdAt: sdk.serverTimestamp(),
-      updatedAt: sdk.serverTimestamp()
-    }, roomData || {});
-    await sdk.setDoc(sdk.doc(fb.db, 'rooms', code), payload, {merge:true});
-    return {code, id:code, data:payload};
+    try{
+      const code = String((roomData && roomData.code) || code4());
+      const player = nowPlayer(roomData && roomData.player);
+      const payload = Object.assign({
+        code,
+        status: 'lobby',
+        ready: false,
+        rounds: Number(roomData && roomData.rounds) || 5,
+        hostUserId: player.userId,
+        players: [Object.assign({}, player, {host:true})],
+        createdAt: sdk.serverTimestamp(),
+        updatedAt: sdk.serverTimestamp()
+      }, roomData || {});
+      await sdk.setDoc(sdk.doc(fb.db, 'rooms', code), payload, {merge:true});
+      await sdk.addDoc(sdk.collection(fb.db, 'rooms', code, 'chat'), {
+        from:{userId:'system',name:'Sistem',avatar:'ℹ️'},
+        text:'Oda oluşturuldu.',
+        createdAt:sdk.serverTimestamp(),
+        atMs:Date.now()
+      });
+      return {code, id:code, data:payload};
+    }catch(err){
+      state.lastError = err && err.message ? err.message : 'Firebase createRoom failed';
+      return fallback('createRoom', arguments, null);
+    }
   }
 
   async function joinRoom(code, playerData){
@@ -115,14 +134,27 @@
     const fb = await initFirebase();
     if(!fb) return fallback('joinRoom', [code], null);
     const sdk = fb.sdk;
-    const ref = sdk.doc(fb.db, 'rooms', normalized);
-    await sdk.setDoc(ref, {
-      code: normalized,
-      status: 'lobby',
-      players: sdk.arrayUnion(nowPlayer(playerData)),
-      updatedAt: sdk.serverTimestamp()
-    }, {merge:true});
-    return {code:normalized, id:normalized};
+    try{
+      const ref = sdk.doc(fb.db, 'rooms', normalized);
+      const player = nowPlayer(playerData);
+      await sdk.setDoc(ref, {
+        code: normalized,
+        status: 'lobby',
+        players: sdk.arrayUnion(Object.assign({}, player, {host:false, ready:true})),
+        updatedAt: sdk.serverTimestamp()
+      }, {merge:true});
+      await sdk.addDoc(sdk.collection(fb.db, 'rooms', normalized, 'chat'), {
+        from:{userId:'system',name:'Sistem',avatar:'ℹ️'},
+        text:(player.name || 'Oyuncu') + ' odaya katıldı.',
+        createdAt:sdk.serverTimestamp(),
+        atMs:Date.now()
+      });
+      const snap = await sdk.getDoc(ref);
+      return {code:normalized, id:normalized, data:snap.exists()?snap.data():null};
+    }catch(err){
+      state.lastError = err && err.message ? err.message : 'Firebase joinRoom failed';
+      return fallback('joinRoom', [code], null);
+    }
   }
 
   async function listenRoom(code, callback){
@@ -130,9 +162,72 @@
     const fb = await initFirebase();
     if(!fb || !normalized || typeof callback !== 'function') return noopUnsubscribe();
     const sdk = fb.sdk;
-    return sdk.onSnapshot(sdk.doc(fb.db, 'rooms', normalized), snap=>{
-      callback(snap.exists() ? Object.assign({id:snap.id}, snap.data()) : null);
-    }, ()=>callback(null));
+    try{
+      let roomData = null;
+      let chat = [];
+      const emit = ()=>{
+        if(!roomData) callback(null);
+        else callback(Object.assign({id:normalized, chat}, roomData));
+      };
+      const unsubRoom = sdk.onSnapshot(sdk.doc(fb.db, 'rooms', normalized), snap=>{
+        roomData = snap.exists() ? snap.data() : null;
+        emit();
+      }, ()=>callback(null));
+      const chatQuery = sdk.query(
+        sdk.collection(fb.db, 'rooms', normalized, 'chat'),
+        sdk.orderBy('atMs','asc'),
+        sdk.limit(40)
+      );
+      const unsubChat = sdk.onSnapshot(chatQuery, snap=>{
+        chat = [];
+        snap.forEach(docSnap=>chat.push(Object.assign({id:docSnap.id}, docSnap.data())));
+        emit();
+      }, ()=>{});
+      return function(){ try{unsubRoom();}catch(e){} try{unsubChat();}catch(e){} };
+    }catch(err){
+      state.lastError = err && err.message ? err.message : 'Firebase listenRoom failed';
+      return noopUnsubscribe();
+    }
+  }
+
+  async function setRoomReady(code, playerData, ready){
+    const normalized = String(code || '').trim();
+    const fb = await initFirebase();
+    if(!fb || !normalized) return null;
+    const sdk = fb.sdk;
+    try{
+      const ref = sdk.doc(fb.db, 'rooms', normalized);
+      const snap = await sdk.getDoc(ref);
+      const data = snap.exists() ? snap.data() : {};
+      const player = Object.assign(nowPlayer(playerData), {ready:!!ready});
+      const players = Array.isArray(data.players) ? data.players.slice() : [];
+      const idx = players.findIndex(p=>String(p.userId || p.id || '') === String(player.userId || player.id || ''));
+      if(idx >= 0) players[idx] = Object.assign({}, players[idx], player, {ready:!!ready});
+      else players.push(player);
+      await sdk.setDoc(ref, {players, updatedAt:sdk.serverTimestamp()}, {merge:true});
+      return {code:normalized, ready:!!ready};
+    }catch(err){
+      state.lastError = err && err.message ? err.message : 'Firebase setRoomReady failed';
+      return null;
+    }
+  }
+
+  async function setRoomRounds(code, rounds){
+    const normalized = String(code || '').trim();
+    const fb = await initFirebase();
+    if(!fb || !normalized) return null;
+    const sdk = fb.sdk;
+    try{
+      const count = Math.max(1, Math.min(20, Number(rounds) || 5));
+      await sdk.setDoc(sdk.doc(fb.db, 'rooms', normalized), {
+        rounds: count,
+        updatedAt:sdk.serverTimestamp()
+      }, {merge:true});
+      return {code:normalized, rounds:count};
+    }catch(err){
+      state.lastError = err && err.message ? err.message : 'Firebase setRoomRounds failed';
+      return null;
+    }
   }
 
   async function sendChatMessage(targetId, message, playerData){
@@ -141,13 +236,20 @@
     const fb = await initFirebase();
     if(!fb || !targetId || !text) return fallback('sendChatMessage', [message || targetId], null);
     const sdk = fb.sdk;
-    const payload = {
-      from: nowPlayer(playerData),
-      text: text.slice(0, 160),
-      createdAt: sdk.serverTimestamp()
-    };
-    await sdk.addDoc(sdk.collection(fb.db, 'rooms', String(targetId), 'chat'), payload);
-    return payload;
+    try{
+      const targetType = playerData && playerData.targetType === 'match' ? 'matches' : 'rooms';
+      const payload = {
+        from: nowPlayer(playerData),
+        text: text.slice(0, 160),
+        createdAt: sdk.serverTimestamp(),
+        atMs: Date.now()
+      };
+      await sdk.addDoc(sdk.collection(fb.db, targetType, String(targetId), 'chat'), payload);
+      return payload;
+    }catch(err){
+      state.lastError = err && err.message ? err.message : 'Firebase sendChat failed';
+      return fallback('sendChatMessage', [message || targetId], null);
+    }
   }
 
   function firebaseMatchPayload(matchId, data, userId){
@@ -271,64 +373,90 @@
     const fb = await initFirebase();
     if(!fb || !matchId || typeof callback !== 'function') return noopUnsubscribe();
     const sdk = fb.sdk;
-    return sdk.onSnapshot(sdk.doc(fb.db, 'matches', String(matchId)), snap=>{
-      callback(snap.exists() ? Object.assign({id:snap.id}, snap.data()) : null);
-    }, ()=>callback(null));
+    try{
+      return sdk.onSnapshot(sdk.doc(fb.db, 'matches', String(matchId)), snap=>{
+        callback(snap.exists() ? Object.assign({id:snap.id}, snap.data()) : null);
+      }, ()=>callback(null));
+    }catch(err){
+      state.lastError = err && err.message ? err.message : 'Firebase listenMatch failed';
+      return noopUnsubscribe();
+    }
   }
 
   async function submitMatchResult(matchId, result){
     const fb = await initFirebase();
     if(!fb || !matchId) return null;
     const sdk = fb.sdk;
-    const payload = Object.assign({
-      matchId: String(matchId),
-      submittedAt: sdk.serverTimestamp()
-    }, result || {});
-    const matchUpdate = {
-      status: payload.status || 'complete',
-      updatedAt: sdk.serverTimestamp()
-    };
-    if(typeof payload.score1 === 'number') matchUpdate.score1 = payload.score1;
-    if(typeof payload.score2 === 'number') matchUpdate.score2 = payload.score2;
-    if(payload.winner !== undefined) matchUpdate.winner = payload.winner;
-    await sdk.setDoc(sdk.doc(fb.db, 'matches', String(matchId)), matchUpdate, {merge:true});
-    await sdk.setDoc(sdk.doc(fb.db, 'matchResults', String(matchId)), payload, {merge:true});
-    return payload;
+    try{
+      const payload = Object.assign({
+        matchId: String(matchId),
+        submittedAt: sdk.serverTimestamp()
+      }, result || {});
+      const matchUpdate = {
+        status: payload.status || 'complete',
+        updatedAt: sdk.serverTimestamp()
+      };
+      if(typeof payload.score1 === 'number') matchUpdate.score1 = payload.score1;
+      if(typeof payload.score2 === 'number') matchUpdate.score2 = payload.score2;
+      if(payload.winner !== undefined) matchUpdate.winner = payload.winner;
+      await sdk.setDoc(sdk.doc(fb.db, 'matches', String(matchId)), matchUpdate, {merge:true});
+      await sdk.setDoc(sdk.doc(fb.db, 'matchResults', String(matchId)), payload, {merge:true});
+      return payload;
+    }catch(err){
+      state.lastError = err && err.message ? err.message : 'Firebase submitMatchResult failed';
+      return null;
+    }
   }
 
   async function createTournament(type, data){
     const fb = await initFirebase();
     if(!fb) return fallback('createTournament', [type], null);
     const sdk = fb.sdk;
-    const payload = Object.assign({
-      type: type || 'mini',
-      status: 'open',
-      players: [],
-      createdAt: sdk.serverTimestamp(),
-      updatedAt: sdk.serverTimestamp()
-    }, data || {});
-    const ref = await sdk.addDoc(sdk.collection(fb.db, 'tournaments'), payload);
-    return {id:ref.id, data:payload};
+    try{
+      const player = data && data.player ? nowPlayer(data.player) : null;
+      const payload = Object.assign({
+        type: type || 'mini',
+        status: 'open',
+        players: player ? [player] : [],
+        createdAt: sdk.serverTimestamp(),
+        updatedAt: sdk.serverTimestamp()
+      }, data || {});
+      const ref = await sdk.addDoc(sdk.collection(fb.db, 'tournaments'), payload);
+      return {id:ref.id, data:payload};
+    }catch(err){
+      state.lastError = err && err.message ? err.message : 'Firebase createTournament failed';
+      return fallback('createTournament', [type], null);
+    }
   }
 
   async function joinTournament(tournamentId, playerData){
     const fb = await initFirebase();
     if(!fb || !tournamentId) return null;
     const sdk = fb.sdk;
-    await sdk.setDoc(sdk.doc(fb.db, 'tournaments', String(tournamentId)), {
-      players: sdk.arrayUnion(nowPlayer(playerData)),
-      updatedAt: sdk.serverTimestamp()
-    }, {merge:true});
-    return {id:String(tournamentId)};
+    try{
+      await sdk.setDoc(sdk.doc(fb.db, 'tournaments', String(tournamentId)), {
+        players: sdk.arrayUnion(nowPlayer(playerData)),
+        updatedAt: sdk.serverTimestamp()
+      }, {merge:true});
+      return {id:String(tournamentId)};
+    }catch(err){
+      state.lastError = err && err.message ? err.message : 'Firebase joinTournament failed';
+      return null;
+    }
   }
 
   async function listenTournament(tournamentId, callback){
     const fb = await initFirebase();
     if(!fb || !tournamentId || typeof callback !== 'function') return noopUnsubscribe();
     const sdk = fb.sdk;
-    return sdk.onSnapshot(sdk.doc(fb.db, 'tournaments', String(tournamentId)), snap=>{
-      callback(snap.exists() ? Object.assign({id:snap.id}, snap.data()) : null);
-    }, ()=>callback(null));
+    try{
+      return sdk.onSnapshot(sdk.doc(fb.db, 'tournaments', String(tournamentId)), snap=>{
+        callback(snap.exists() ? Object.assign({id:snap.id}, snap.data()) : null);
+      }, ()=>callback(null));
+    }catch(err){
+      state.lastError = err && err.message ? err.message : 'Firebase listenTournament failed';
+      return noopUnsubscribe();
+    }
   }
 
   window.TopBulmacaFirebaseService = {
@@ -338,6 +466,8 @@
     createRoom,
     joinRoom,
     listenRoom,
+    setRoomReady,
+    setRoomRounds,
     sendChatMessage,
     findMatch,
     listenMatch,
@@ -350,6 +480,8 @@
   window.createRoom = createRoom;
   window.joinRoom = joinRoom;
   window.listenRoom = listenRoom;
+  window.setRoomReady = setRoomReady;
+  window.setRoomRounds = setRoomRounds;
   window.sendChatMessage = sendChatMessage;
   window.findMatch = findMatch;
   window.listenMatch = listenMatch;
