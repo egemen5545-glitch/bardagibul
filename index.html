@@ -83,10 +83,12 @@
   <div id="game-social" class="game-social" aria-hidden="true">
     <div class="game-side me">
       <div id="game-bubble-me" class="game-bubble"></div>
+      <div class="game-player-label"><span id="game-name-me">Sen</span><b id="game-score-me">0</b></div>
       <div id="game-avatar-me" class="game-avatar">⭐</div>
     </div>
     <div class="game-side rival">
       <div id="game-bubble-rival" class="game-bubble"></div>
+      <div class="game-player-label"><span id="game-name-rival">Rakip</span><b id="game-score-rival">0</b></div>
       <div id="game-avatar-rival" class="game-avatar">🎱</div>
     </div>
   </div>
@@ -110,34 +112,38 @@
 
 
 <!-- ======== LEVEL MAP ======== -->
-<div class="screen" id="screen-levels">
+<div class="screen menu-return-screen" id="screen-levels">
+  <button class="btn small secondary screen-menu-top" data-menu-back type="button">🏠 Ana Menü</button>
   <h1 class="logo page-logo">BÖLÜMLER</h1>
   <p class="tagline level-map-note">50 bölümlük yolu tamamla. Geçtiğin bölümler açılır, sıradaki bölüm parlayarak görünür.</p>
   <div id="level-map-summary" class="pill level-map-summary">İlerleme: 0/50</div>
   <div id="level-grid" class="level-grid"></div>
-  <button class="btn small secondary" id="btn-levels-back" style="margin-top:10px">← Geri</button>
+  <button class="btn small secondary screen-menu-bottom" id="btn-levels-back" style="margin-top:10px">🏠 Ana Menü</button>
 </div>
 
 <!-- ======== DAILY MISSIONS ======== -->
-<div class="screen" id="screen-missions">
+<div class="screen menu-return-screen" id="screen-missions">
+  <button class="btn small secondary screen-menu-top" data-menu-back type="button">🏠 Ana Menü</button>
   <h1 class="logo page-logo">HAFTALIK GÖREVLER</h1>
   <p class="tagline mission-note" id="mission-week-note">Her gün farklı garip görevler gelir. 7 günde bir aynı sıra baştan başlar.</p>
   <div id="missions-list" class="missions-list"></div>
-  <button class="btn small secondary" id="btn-missions-back" style="margin-top:10px">← Geri</button>
+  <button class="btn small secondary screen-menu-bottom" id="btn-missions-back" style="margin-top:10px">🏠 Ana Menü</button>
 </div>
 
 <!-- ======== WEEKLY LEAGUE ======== -->
-<div class="screen" id="screen-league">
+<div class="screen menu-return-screen" id="screen-league">
+  <button class="btn small secondary screen-menu-top" data-menu-back type="button">🏠 Ana Menü</button>
   <h1 class="logo page-logo">HAFTALIK LİG</h1>
   <p class="tagline league-note" id="league-week-note">Bu hafta topladığın puanla yerel ligde yüksel.</p>
   <div id="league-summary" class="league-summary"></div>
   <div id="league-board" class="league-board"></div>
   <div id="league-reward" class="league-reward"></div>
-  <button class="btn small secondary" id="btn-league-back" style="margin-top:10px">← Geri</button>
+  <button class="btn small secondary screen-menu-bottom" id="btn-league-back" style="margin-top:10px">🏠 Ana Menü</button>
 </div>
 
 <!-- ======== SHOP ======== -->
-<div class="screen" id="screen-shop">
+<div class="screen menu-return-screen" id="screen-shop">
+  <button class="btn small secondary screen-menu-top" data-menu-back type="button">🏠 Ana Menü</button>
   <h1 class="logo page-logo">MARKET</h1>
   <div class="tabs">
     <button class="tab active" data-tab="cup">🥤 Bardaklar</button>
@@ -147,13 +153,14 @@
     <button class="tab" data-tab="music">🎵 Müzikler</button>
   </div>
   <div id="shop-grid"></div>
-  <button class="btn small secondary" id="btn-shop-back" style="margin-top:10px">← Geri</button>
+  <button class="btn small secondary screen-menu-bottom" id="btn-shop-back" style="margin-top:10px">🏠 Ana Menü</button>
 </div>
 
 <!-- ======== FRIEND ROOM MENU ======== -->
-<div class="screen online-screen" id="screen-friends">
+<div class="screen online-screen menu-return-screen" id="screen-friends">
+  <button class="btn small secondary screen-menu-top" data-menu-back type="button">🏠 Ana Menü</button>
   <h1 class="logo page-logo">ARKADAŞLA OYNA</h1>
-  <p class="tagline online-note">Davet koduyla local/mock oda kur. Gerçek online bağlantı sonraki aşamada bağlanacak.</p>
+  <p class="tagline online-note">Davet koduyla oda kur veya katıl. Bağlantı yoksa yerel modla devam eder.</p>
   <div class="online-panel">
     <button class="btn" id="btn-create-room">➕ Oda Oluştur</button>
     <div class="join-box">
@@ -161,11 +168,12 @@
       <button class="btn secondary" id="btn-join-room">🔑 Odaya Katıl</button>
     </div>
   </div>
-  <button class="btn small secondary" id="btn-friends-back">← Geri</button>
+  <button class="btn small secondary screen-menu-bottom" id="btn-friends-back">🏠 Ana Menü</button>
 </div>
 
 <!-- ======== ROOM LOBBY ======== -->
-<div class="screen online-screen" id="screen-room">
+<div class="screen online-screen menu-return-screen" id="screen-room">
+  <button class="btn small secondary screen-menu-top" data-menu-back type="button">🏠 Ana Menü</button>
   <h1 class="logo page-logo">ODA</h1>
   <div class="room-shell">
     <div class="room-code-card">
@@ -197,13 +205,17 @@
       </div>
     </div>
   </div>
-  <button class="btn small secondary" id="btn-room-leave">← Odadan Çık</button>
+  <div class="subscreen-bottom-actions">
+    <button class="btn small secondary screen-menu-bottom" id="btn-room-menu" data-menu-back type="button">🏠 Ana Menü</button>
+    <button class="btn small secondary" id="btn-room-leave">← Odadan Çık</button>
+  </div>
 </div>
 
 <!-- ======== MOCK RACE ======== -->
-<div class="screen online-screen" id="screen-race">
+<div class="screen online-screen menu-return-screen" id="screen-race">
+  <button class="btn small secondary screen-menu-top" data-menu-back type="button">🏠 Ana Menü</button>
   <h1 class="logo page-logo">YARIŞMA</h1>
-  <p class="tagline online-note" id="race-note">Local/mock maç hazırlanıyor.</p>
+  <p class="tagline online-note" id="race-note">Maç hazırlanıyor.</p>
   <div id="race-scoreboard" class="race-scoreboard"></div>
   <div class="chat-panel race-chat-panel">
     <div id="race-chat-list" class="chat-list"></div>
@@ -224,28 +236,29 @@
 </div>
 
 <!-- ======== MATCHMAKING ======== -->
-<div class="screen online-screen" id="screen-matchmaking">
+<div class="screen online-screen menu-return-screen" id="screen-matchmaking">
+  <button class="btn small secondary screen-menu-top" data-menu-back type="button">🏠 Ana Menü</button>
   <h1 class="logo page-logo">ONLINE MAÇ</h1>
-  <p class="tagline online-note">Firebase kuyruğu hazır. Config eksikse mock rakip bulunur.</p>
+  <p class="tagline online-note">Rakibini bul ve maça hazırlan.</p>
   <div class="match-card">
     <div class="elo-pill">ELO: <b id="elo-label">1000</b></div>
     <div id="matchmaking-status" class="matchmaking-status">Hazır</div>
     <div id="matchmaking-result" class="matchmaking-result"></div>
     <button class="btn" id="btn-find-match">Eşleşme Bul</button>
-    <button class="btn secondary" id="btn-start-found-match" style="display:none">Maça Gir</button>
   </div>
-  <button class="btn small secondary" id="btn-matchmaking-back">← Geri</button>
+  <button class="btn small secondary screen-menu-bottom" id="btn-matchmaking-back">🏠 Ana Menü</button>
 </div>
 
 <!-- ======== TOURNAMENT ======== -->
-<div class="screen online-screen" id="screen-tournament">
+<div class="screen online-screen menu-return-screen" id="screen-tournament">
+  <button class="btn small secondary screen-menu-top" data-menu-back type="button">🏠 Ana Menü</button>
   <h1 class="logo page-logo">TURNUVA</h1>
-  <p class="tagline online-note">Sadece oyun içi altınla local/mock kupa. Gerçek para veya çekim yok.</p>
+  <p class="tagline online-note">Sadece oyun içi altınla kupa. Gerçek para veya çekim yok.</p>
   <div id="tournament-list" class="tournament-list"></div>
   <div id="tournament-bracket" class="tournament-bracket"></div>
   <div class="race-actions">
     <button class="btn" id="btn-tournament-play" style="display:none">Turu Oyna</button>
-    <button class="btn small secondary" id="btn-tournament-back">← Geri</button>
+    <button class="btn small secondary screen-menu-bottom" id="btn-tournament-back">🏠 Ana Menü</button>
   </div>
 </div>
 

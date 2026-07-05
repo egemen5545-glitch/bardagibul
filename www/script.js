@@ -153,6 +153,9 @@ function selectedBallSkin(){ return BALL_SKINS.find(s=>s.id===S.ballSkin)||BALL_
 function selectedTableSkin(){ return TABLE_SKINS.find(s=>s.id===S.tableSkin)||TABLE_SKINS[0]; }
 function selectedBackgroundSkin(){ return BACKGROUND_SKINS.find(s=>s.id===S.backgroundSkin)||BACKGROUND_SKINS[0]; }
 function selectedMusicSkin(){ return MUSIC_SKINS.find(s=>s.id===S.musicSkin)||MUSIC_SKINS[0]; }
+function skinById(list,id,fallback){
+  return list.find(s=>s.id===id) || fallback || list[0];
+}
 function emptySkinPerks(){
   return {xrayMs:0, slowStartFactor:1, focusMs:0, steadyFactor:1, coinBoost:0, comboShield:false, labels:[]};
 }
@@ -608,7 +611,17 @@ function exitGameFullscreen(){
 }
 function showScreen(id){
   currentScreenId=id;
-  if(id!=='screen-game'){ stopAllGameAudio({immediateMusic:true}); exitGameFullscreen(); clearGameCosmetics(); }
+  if(id==='screen-menu'){
+    stopAllGameAudio({immediateMusic:true});
+    stopRoundTimers();
+    clearGameStatus();
+    exitGameFullscreen();
+    clearGameCosmetics();
+  }else if(id!=='screen-game'){
+    stopAllGameAudio({immediateMusic:true});
+    exitGameFullscreen();
+    clearGameCosmetics();
+  }
   document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
   $(id).classList.add('active');
   $('topbar').classList.toggle('show', id==='screen-game');
@@ -622,6 +635,36 @@ function msgModal(emoji,title,body){
   $('msg-emoji').textContent=emoji; $('msg-title').textContent=title; $('msg-body').textContent=body;
   modal('modal-msg');
 }
+let firebaseStatusTimer=null;
+function showFirebaseStatusToast(message,kind='info'){
+  if(!message) return;
+  let el=$('firebase-status-toast');
+  if(!el){
+    el=document.createElement('div');
+    el.id='firebase-status-toast';
+    el.className='firebase-status-toast';
+    el.innerHTML='<span class="firebase-status-dot"></span><span class="firebase-status-text"></span>';
+    document.body.appendChild(el);
+  }
+  el.classList.remove('ready','warn','show');
+  el.classList.add(kind==='ready'?'ready':'warn');
+  const text=el.querySelector('.firebase-status-text');
+  if(text) text.textContent=message;
+  el.classList.toggle('game',currentScreenId==='screen-game');
+  void el.offsetWidth;
+  el.classList.add('show');
+  if(firebaseStatusTimer) clearTimeout(firebaseStatusTimer);
+  firebaseStatusTimer=setTimeout(()=>el.classList.remove('show'),kind==='ready'?2600:4200);
+}
+function handleFirebaseStatus(event){
+  const detail=(event&&event.detail)||{};
+  if(detail.mode==='ready'){
+    showFirebaseStatusToast('Online bağlantı hazır.', 'ready');
+  }else if(detail.mode==='fallback'){
+    showFirebaseStatusToast('Online bağlantı hazır değil, yerel modla devam ediliyor.', 'warn');
+  }
+}
+window.addEventListener('topbulmaca-firebase-status',handleFirebaseStatus);
 function floatCoin(text,x,y){
   const d=document.createElement('div');d.className='coin-float';d.textContent=text;
   d.style.left=x+'px';d.style.top=y+'px';document.body.appendChild(d);
@@ -648,9 +691,51 @@ let choiceTimerId=null, choiceTimerRaf=null, choiceDeadline=0, choiceTimeLeft=0,
 let cups=[], ballCup=null, guessing=false, hintUsedThisRound=false, busy=false, slotPositions=[];
 let currentRoundRecord=null, lastRoundRecord=null, varrOpportunityResolve=null, varrOpportunityTimer=null, varrReviewing=false;
 let activeRoundPerks=emptySkinPerks();
+let sharedRoundVisuals=null, lastSelectionSlot=null, sharedRoundWaitTimer=null;
+let gameFlowToken=0;
 
-function levelSettings(lv){
-  const capped = Math.max(1, Math.min(Number(lv)||1, MAX_CLASSIC_LEVEL));
+function beginGameFlow(){
+  gameFlowToken++;
+  return gameFlowToken;
+}
+function isGameFlowActive(token){
+  return token===gameFlowToken && currentScreenId==='screen-game';
+}
+function stopRoundTimers(){
+  stopChoiceTimer();
+  hideVarrButton();
+  if(mockSearchTimer){ clearTimeout(mockSearchTimer); mockSearchTimer=null; }
+  if(sharedRoundWaitTimer){ clearTimeout(sharedRoundWaitTimer); sharedRoundWaitTimer=null; }
+  Object.keys(gameChatTimers).forEach(k=>{
+    if(gameChatTimers[k]) clearTimeout(gameChatTimers[k]);
+    gameChatTimers[k]=null;
+  });
+}
+function clearGameStatus(){
+  gameFlowToken++;
+  isPaused=false;
+  busy=false;
+  guessing=false;
+  varrReviewing=false;
+  hintUsedThisRound=false;
+  eliminateUsedThisRound=false;
+  varrUsedThisRound=false;
+  currentRoundRecord=null;
+  lastRoundRecord=null;
+  activeRoundPerks=emptySkinPerks();
+  const status=$('status-msg'); if(status) status.textContent='';
+  const timer=$('timer-fill'); if(timer){ timer.style.width='100%'; timer.classList.remove('warn'); }
+  const game=$('screen-game');
+  if(game) game.classList.remove('screen-shake','varr-reviewing');
+  ['game-bubble-me','game-bubble-rival'].forEach(id=>{ const el=$(id); if(el) el.classList.remove('show'); });
+  document.body.classList.remove('final-victory');
+  ['modal-gameover','modal-complete','modal-pause'].forEach(id=>{ const el=$(id); if(el) el.classList.remove('show'); });
+  try{ setHelperButtons(false); }catch(e){}
+  try{ clearFx(); }catch(e){}
+  try{ hideBall(); }catch(e){}
+}
+
+function rawZoneSettings(capped){
   const p = ((capped-1)%10)/9;
   // Zorluk hızdan çok bardak sayısı, renk yakınlığı, sahte hamle ve süre baskısıyla artar.
   if(capped<=10){
@@ -666,6 +751,22 @@ function levelSettings(lv){
     return {zone:'purple', cupCount:capped>=37?7:6, swaps:32+Math.round(p*7), dur:425-p*35, feints:true, colors:true, invis:true, doubleFake:true, finalZone:false, feintChance:.22, colorChance:.27, ghostChance:.08, bobChance:.18};
   }
   return {zone:'red', cupCount:capped>=47?8:7, swaps:40+Math.round(p*5), dur:390-p*28, feints:true, colors:true, invis:true, doubleFake:true, finalZone:true, feintChance:.23, colorChance:.18, ghostChance:.07, bobChance:.20};
+}
+function levelSettings(lv){
+  const capped = Math.max(1, Math.min(Number(lv)||1, MAX_CLASSIC_LEVEL));
+  const cur = rawZoneSettings(capped);
+  const posInZone = (capped-1)%10; // bölgenin kaçıncı bölümündeyiz (0-9)
+  const RAMP = 4; // yeni bölgeye geçişte yanıltma oranları 4 bölümde yumuşak açılır, ani sıçrama olmaz
+  if(capped<=10 || posInZone>=RAMP) return cur;
+  const prev = rawZoneSettings(capped-posInZone-1); // önceki bölgenin son bölümü
+  const ease = (posInZone+1)/RAMP;
+  const blend=(a,b)=>a+(b-a)*ease;
+  return Object.assign({},cur,{
+    feintChance:blend(prev.feintChance,cur.feintChance),
+    colorChance:blend(prev.colorChance,cur.colorChance),
+    ghostChance:blend(prev.ghostChance,cur.ghostChance),
+    bobChance:blend(prev.bobChance,cur.bobChance)
+  });
 }
 const rewardFor=lv=>BASE_REWARD;
 const comboBonusFor=combo=>combo>=2 ? Math.min(80, combo*5) : 0;
@@ -705,17 +806,21 @@ function clearGameCosmetics(){
     document.body.style.removeProperty('background');
     delete document.body.dataset.tableSkin;
     delete document.body.dataset.backgroundSkin;
+    delete document.body.dataset.visibilityRisk;
   }catch(e){}
 }
 function applyGameCosmetics(){
-  const tableSkin=selectedTableSkin();
-  const bgSkin=selectedBackgroundSkin();
+  const visuals=sharedRoundVisuals || {};
+  const tableSkin=skinById(TABLE_SKINS,visuals.tableSkin,selectedTableSkin());
+  const bgSkin=skinById(BACKGROUND_SKINS,visuals.backgroundSkin,selectedBackgroundSkin());
+  const visibilityRisk=!!currentVisibilityRisk();
   try{
     document.body.style.setProperty('--table-surface',tableSkin.css);
     document.body.style.setProperty('--table-edge',tableSkin.edge||'rgba(255,255,255,.12)');
     document.body.style.setProperty('--table-glow',tableSkin.glow||'rgba(0,0,0,.32)');
     document.body.dataset.tableSkin=tableSkin.id;
     document.body.dataset.backgroundSkin=bgSkin.id;
+    document.body.dataset.visibilityRisk=visibilityRisk?'true':'false';
     if(bgSkin.id==='zone'){
       ['--felt','--felt-dark','--bg'].forEach(v=>document.body.style.removeProperty(v));
       document.body.style.removeProperty('background');
@@ -853,7 +958,7 @@ function renderWeeklyLeague(){
   const rows=weeklyLeagueRows();
   const rank=Math.max(1,rows.findIndex(r=>r.player)+1);
   const note=$('league-week-note');
-  if(note) note.textContent='Hafta başlangıcı: '+league.weekKey+' • local/mock lig';
+  if(note) note.textContent='Hafta başlangıcı: '+league.weekKey+' • yerel lig';
   const summary=$('league-summary');
   if(summary) summary.innerHTML='<div class="league-score-pill">Puan: <b>'+league.score+'</b></div><div class="league-score-pill">Sıra: <b>#'+rank+'</b></div>';
   board.innerHTML=rows.map((r,i)=>
@@ -875,16 +980,41 @@ const TOURNAMENT_TYPES={
 let mockSearchTimer=null;
 const gameChatTimers={me:null,rival:null};
 let firebaseRoomUnsubscribe=null;
+let firebaseMatchUnsubscribe=null;
 function onlineName(){ return S.playerName || 'Sen'; }
 function onlineAvatar(){ return AVATAR_LIST.includes(S.avatar) ? S.avatar : AVATAR_LIST[0]; }
+function firebaseAuthUid(){
+  try{
+    const svc=window.TopBulmacaFirebaseService;
+    return svc && svc.getAuthUid ? (svc.getAuthUid()||'') : '';
+  }catch(e){ return ''; }
+}
 function onlinePlayerPayload(){
   sanitizeState();
-  return {userId:S.userId,name:onlineName(),avatar:onlineAvatar(),elo:S.elo};
+  const payload={
+    userId:S.userId,
+    name:onlineName(),
+    avatar:onlineAvatar(),
+    elo:S.elo,
+    cupSkin:S.cupSkin,
+    ballSkin:S.ballSkin,
+    tableSkin:S.tableSkin,
+    backgroundSkin:S.backgroundSkin
+  };
+  const authUid=firebaseAuthUid();
+  if(authUid) payload.authUid=authUid;
+  return payload;
 }
 function stopRoomListener(){
   if(firebaseRoomUnsubscribe){
     try{ firebaseRoomUnsubscribe(); }catch(e){}
     firebaseRoomUnsubscribe=null;
+  }
+}
+function stopMatchListener(){
+  if(firebaseMatchUnsubscribe){
+    try{ firebaseMatchUnsubscribe(); }catch(e){}
+    firebaseMatchUnsubscribe=null;
   }
 }
 function mockOpponentName(seed=''){
@@ -924,11 +1054,14 @@ function makeRoom(code,joined=false){
 function firebaseChatToLocal(item){
   const from=item && item.from ? item.from : {};
   const userId=from.userId || from.id || '';
+  const authUid=from.authUid || '';
   const isSystem=userId==='system' || from.name==='Sistem';
+  const myAuth=firebaseAuthUid();
   return {
-    from:isSystem?'system':userId===S.userId?'me':'rival',
+    from:isSystem?'system':(userId===S.userId || (authUid && myAuth && authUid===myAuth))?'me':'rival',
     name:from.name || (isSystem?'Sistem':'Oyuncu'),
     avatar:from.avatar || (isSystem?'ℹ️':'🎱'),
+    clientId:String((item&&item.clientId)||''),
     text:String((item&&item.text)||'').slice(0,160),
     at:Number(item&&item.atMs)||Date.now()
   };
@@ -956,9 +1089,21 @@ function firebaseRoomToLocal(remote, fallbackCode){
     createdAt:Number(data.createdAtMs)||Date.now(),
     ready:!!(me&&me.ready),
     rounds:Number(data.rounds)||5,
+    matchId:data.matchId||null,
     players:mapped,
     chat:(Array.isArray(data.chat)?data.chat:[]).map(firebaseChatToLocal)
   };
+}
+async function joinFriendMatchFromRoom(matchId){
+  ensureOnlineState();
+  if(S.online.activeMatch || (S.online.pendingMatch && S.online.pendingMatch.firebaseMatchId===matchId)) return;
+  S.online.pendingMatch=null;
+  startMatchListener(matchId);
+  await saveState();
+  if(currentScreenId==='screen-room' || currentScreenId==='screen-friends'){
+    renderRace();
+    showScreen('screen-race');
+  }
 }
 async function startRoomListener(code){
   stopRoomListener();
@@ -967,10 +1112,13 @@ async function startRoomListener(code){
     const unsub=await listenRoom(code,room=>{
       if(!room) return;
       ensureOnlineState();
+      const previousMatchId=S.online.room && S.online.room.matchId;
       S.online.room=firebaseRoomToLocal(room,code);
       saveState();
       if(currentScreenId==='screen-room') renderRoom();
       renderAllChatViews();
+      const newMatchId=S.online.room.matchId;
+      if(newMatchId && newMatchId!==previousMatchId) joinFriendMatchFromRoom(newMatchId);
     });
     if(typeof unsub==='function') firebaseRoomUnsubscribe=unsub;
   }catch(e){}
@@ -999,6 +1147,10 @@ async function joinRoomOnline(code){
   const service=typeof joinRoom==='function' ? joinRoom : null;
   if(!service) return joinRoomMock(normalized);
   const result=await service(normalized,onlinePlayerPayload());
+  if(result && result.notFound){
+    msgModal('🔎','Oda bulunamadı','Bu kodla açık bir oda yok. Kodu kontrol edip tekrar dene.');
+    return null;
+  }
   if(result && result.data){
     S.online.room=firebaseRoomToLocal(result.data,normalized);
     S.online.pendingMatch=null;
@@ -1037,6 +1189,7 @@ async function joinRoomMock(code){
 }
 async function leaveRoomMock(){
   ensureOnlineState();
+  stopMatchListener();
   S.online.room=null;
   S.online.activeMatch=null;
   S.online.pendingMatch=null;
@@ -1133,13 +1286,24 @@ async function sendChatOnline(message){
   const match=activeChatMatch();
   const service=typeof sendChatMessage==='function' ? sendChatMessage : null;
   if(service && target.kind==='room' && room && room.firebase){
-    const sent=await service(room.code,text,Object.assign({},onlinePlayerPayload(),{targetType:'room'}));
-    if(sent) return;
+    const clientId='room-'+Date.now()+'-'+Math.random().toString(36).slice(2,8);
+    const sent=await service(room.code,text,Object.assign({},onlinePlayerPayload(),{targetType:'room',clientId}));
+    if(sent){
+      if(S.online.room===target.owner){
+        target.chat.push({from:'me',name:onlineName(),avatar:onlineAvatar(),clientId,text:text.slice(0,80),at:Date.now()});
+        trimChat(target.owner);
+        await saveState();
+        renderAllChatViews();
+        showGameChatBubble('me',text);
+      }
+      return;
+    }
   }
   if(service && target.kind==='match' && match && match.firebaseMatchId){
-    const sent=await service(match.firebaseMatchId,text,Object.assign({},onlinePlayerPayload(),{targetType:'match'}));
+    const clientId='match-'+Date.now()+'-'+Math.random().toString(36).slice(2,8);
+    const sent=await service(match.firebaseMatchId,text,Object.assign({},onlinePlayerPayload(),{targetType:'match',clientId}));
     if(sent){
-      target.chat.push({from:'me',name:onlineName(),avatar:onlineAvatar(),text:text.slice(0,80),at:Date.now()});
+      target.chat.push({from:'me',name:onlineName(),avatar:onlineAvatar(),clientId,text:text.slice(0,80),at:Date.now()});
       trimChat(target.owner);
       await saveState();
       renderAllChatViews();
@@ -1184,6 +1348,10 @@ function makeMatchmakingPlayer(raw,score=0){
     name:p.name||'Oyuncu',
     avatar:p.avatar||'🎱',
     elo:Number(p.elo)||1000,
+    cupSkin:p.cupSkin||'red',
+    ballSkin:p.ballSkin||'orange',
+    tableSkin:p.tableSkin||'felt-classic',
+    backgroundSkin:p.backgroundSkin||'zone',
     correct:0,
     combo:0,
     lives:MAX_LIVES,
@@ -1200,15 +1368,252 @@ function firebaseMatchToLocal(result){
   const oppRaw=slot==='player1'?player2:player1;
   const myScore=slot==='player1'?data.score1:data.score2;
   const oppScore=slot==='player1'?data.score2:data.score1;
-  const local=makeCompetitiveMatch('matchmaking', makeMatchmakingPlayer(oppRaw,oppScore));
+  const local=makeCompetitiveMatch(data.source==='friend'?'friend':'matchmaking', makeMatchmakingPlayer(oppRaw,oppScore));
   local.id=data.matchId||data.id||('FB-'+Date.now());
   local.firebaseMatchId=local.id;
   local.firebasePlayerSlot=slot;
-  local.status=data.status==='complete'?'complete':'ready';
+  local.status=data.status==='complete'?'complete':(data.status==='in_progress'?'in_progress':'ready');
+  local.targetRounds=Number(data.targetRounds)||local.targetRounds||MOCK_MATCH_ROUNDS;
+  local.firebaseRoundState=data.roundState||null;
+  local.firebaseSelections=data.selections||{};
+  local.winner=data.winner||null;
   local.player=makeMatchmakingPlayer(Object.assign({},meRaw,{name:onlineName(),avatar:onlineAvatar(),elo:S.elo}),myScore);
   local.opponent=makeMatchmakingPlayer(oppRaw,oppScore);
-  local.chat=[systemChat('Firebase eşleşmesi hazır.')];
+  local.chat=[systemChat('Online eşleşme hazır.')];
   return local;
+}
+function firebaseMatchChatToLocal(chat){
+  return (Array.isArray(chat)?chat:[]).map(firebaseChatToLocal);
+}
+function mergeFirebaseMatchUpdate(remote){
+  if(!remote) return null;
+  ensureOnlineState();
+  const update=firebaseMatchToLocal(remote);
+  const matchId=update.firebaseMatchId||update.id;
+  let target=null;
+  if(S.online.activeMatch && (S.online.activeMatch.firebaseMatchId||S.online.activeMatch.id)===matchId) target=S.online.activeMatch;
+  else if(S.online.pendingMatch && (S.online.pendingMatch.firebaseMatchId||S.online.pendingMatch.id)===matchId) target=S.online.pendingMatch;
+  else target=update;
+  target.id=update.id;
+  target.firebaseMatchId=matchId;
+  target.firebasePlayerSlot=update.firebasePlayerSlot;
+  target.targetRounds=update.targetRounds;
+  target.firebaseRoundState=update.firebaseRoundState;
+  target.firebaseSelections=update.firebaseSelections;
+  target.winner=update.winner;
+  if(update.firebaseRoundState && update.firebaseRoundState.round) target.round=Math.max(target.round||0,Number(update.firebaseRoundState.round)||0);
+  target.player.score=update.player.score;
+  target.opponent.score=update.opponent.score;
+  target.player.name=onlineName();
+  target.player.avatar=onlineAvatar();
+  target.opponent.name=update.opponent.name;
+  target.opponent.avatar=update.opponent.avatar;
+  if(update.status==='complete') target.status='complete';
+  else if(target.status!=='in_progress') target.status=update.status;
+  const remoteChat=firebaseMatchChatToLocal(remote.chat);
+  if(remoteChat.length) target.chat=remoteChat;
+  if(!S.online.activeMatch && !S.online.pendingMatch) S.online.pendingMatch=target;
+  if(currentScreenId==='screen-race') renderRace();
+  if(currentScreenId==='screen-game'){ updateHUD(); renderGameChat(); syncGameChat(); }
+  return target;
+}
+async function startMatchListener(matchId){
+  stopMatchListener();
+  if(typeof listenMatch!=='function' || !matchId) return;
+  try{
+    const unsub=await listenMatch(matchId,remote=>{
+      if(!remote) return;
+      mergeFirebaseMatchUpdate(remote);
+      saveState();
+    });
+    if(typeof unsub==='function') firebaseMatchUnsubscribe=unsub;
+  }catch(e){}
+}
+function isSharedFirebaseMatch(match){
+  return !!(match && (match.source==='matchmaking' || match.source==='friend') && match.firebaseMatchId && match.firebasePlayerSlot);
+}
+function sharedHash(seed){
+  const text=String(seed||'seed');
+  let h=2166136261;
+  for(let i=0;i<text.length;i++){
+    h^=text.charCodeAt(i);
+    h=Math.imul(h,16777619);
+  }
+  return h>>>0;
+}
+function seededRandom(seed){
+  let t=sharedHash(seed);
+  return function(){
+    t += 0x6D2B79F5;
+    let r = Math.imul(t ^ (t >>> 15), 1 | t);
+    r ^= r + Math.imul(r ^ (r >>> 7), 61 | r);
+    return ((r ^ (r >>> 14)) >>> 0) / 4294967296;
+  };
+}
+function seededIndex(seed,max){
+  return sharedHash(seed)%Math.max(1,Number(max)||1);
+}
+function playerOneCosmetics(match){
+  if(!match) return {};
+  return match.firebasePlayerSlot==='player1' ? match.player : match.opponent;
+}
+function makeLocalSharedRoundState(match,roundNumber){
+  const round=Math.max(1,Number(roundNumber)||1);
+  const lv=Math.max(1,Math.min(MAX_CLASSIC_LEVEL,round));
+  const count=Math.max(3,Math.min(5,levelSettings(lv).cupCount||3));
+  const source=playerOneCosmetics(match)||{};
+  const seed=(match.firebaseMatchId||match.id||'match')+'-r'+round;
+  return {
+    seed,
+    level:lv,
+    cups:count,
+    ballIndex:seededIndex(seed+'-ball',count),
+    tableSkin:source.tableSkin||S.tableSkin||'felt-classic',
+    backgroundSkin:source.backgroundSkin||S.backgroundSkin||'zone',
+    ballSkin:source.ballSkin||S.ballSkin||'orange',
+    cupSkin:source.cupSkin||S.cupSkin||'red',
+    round,
+    status:'playing'
+  };
+}
+function applySharedRoundVisuals(roundState){
+  if(!roundState){ sharedRoundVisuals=null; return; }
+  sharedRoundVisuals={
+    tableSkin:roundState.tableSkin,
+    backgroundSkin:roundState.backgroundSkin,
+    ballSkin:roundState.ballSkin,
+    cupSkin:roundState.cupSkin
+  };
+  applyGameCosmetics();
+}
+async function pushSharedRoundState(match,roundNumber){
+  if(!isSharedFirebaseMatch(match) || typeof setSharedRoundState!=='function') return null;
+  const roundState=makeLocalSharedRoundState(match,roundNumber);
+  const saved=await setSharedRoundState(match.firebaseMatchId,roundState);
+  match.firebaseRoundState=saved||roundState;
+  match.firebaseSelections={};
+  return match.firebaseRoundState;
+}
+async function waitForSharedRound(match,roundNumber,status='playing',timeoutMs=8000){
+  const deadline=Date.now()+timeoutMs;
+  while(Date.now()<deadline && (currentScreenId==='screen-game' || currentScreenId==='screen-race')){
+    const rs=match && match.firebaseRoundState;
+    if(rs && Number(rs.round)===Number(roundNumber) && (!status || rs.status===status)) return rs;
+    await wait(220);
+  }
+  return null;
+}
+async function ensureSharedRoundState(match){
+  if(!isSharedFirebaseMatch(match)) return null;
+  const current=match.firebaseRoundState;
+  if(current && current.status==='playing'){
+    applySharedRoundVisuals(current);
+    return current;
+  }
+  const nextRound=current && current.round ? Number(current.round)+1 : 1;
+  if(match.firebasePlayerSlot==='player1'){
+    const pushed=await pushSharedRoundState(match,nextRound);
+    applySharedRoundVisuals(pushed);
+    return pushed;
+  }
+  const waited=await waitForSharedRound(match,nextRound,'playing',8000);
+  if(waited){
+    applySharedRoundVisuals(waited);
+    return waited;
+  }
+  const fallback=makeLocalSharedRoundState(match,nextRound);
+  applySharedRoundVisuals(fallback);
+  return fallback;
+}
+async function waitForSharedResolution(match,roundNumber){
+  const deadline=Date.now()+14000;
+  while(Date.now()<deadline && currentScreenId==='screen-game'){
+    const rs=match && match.firebaseRoundState;
+    if(rs && Number(rs.round)===Number(roundNumber) && (rs.status==='complete' || rs.status==='match_complete')){
+      return rs;
+    }
+    if(match && match.status==='complete') return match.firebaseRoundState || null;
+    await wait(260);
+  }
+  return null;
+}
+async function recordSharedFirebaseRound(match,playerCorrect){
+  if(!isSharedFirebaseMatch(match) || typeof submitRoundSelection!=='function') return false;
+  const rs=match.firebaseRoundState || await ensureSharedRoundState(match);
+  if(!rs) return false;
+  const roundNumber=Number(rs.round)||1;
+  match.round=Math.max(match.round||0,roundNumber);
+  match.player.name=onlineName();
+  match.player.avatar=onlineAvatar();
+  match.player.lives=Math.max(0,lives);
+  if(playerCorrect){
+    match.player.correct++;
+    match.player.combo=streak;
+  }else{
+    match.player.combo=0;
+  }
+  const uid=firebaseAuthUid() || S.userId;
+  const selection={
+    uid,
+    playerSlot:match.firebasePlayerSlot,
+    slot:lastSelectionSlot==null ? -1 : lastSelectionSlot,
+    correct:!!playerCorrect,
+    combo:streak,
+    lives:Math.max(0,lives),
+    round:roundNumber
+  };
+  $('status-msg').textContent='Rakip seçimi bekleniyor...';
+  const submitted=await submitRoundSelection(match.firebaseMatchId,uid,selection);
+  if(submitted) mergeFirebaseMatchUpdate(Object.assign({id:match.firebaseMatchId},submitted));
+  const resolved=await waitForSharedResolution(match,roundNumber);
+  if(!resolved){
+    $('status-msg').textContent='Rakip bekleniyor, yerel devam ediliyor.';
+    await wait(700);
+    return false;
+  }
+  match.round=roundNumber;
+  updateHUD();
+  renderGameChat();
+  if(resolved.result){
+    const oppSlot = match.firebasePlayerSlot==='player1' ? resolved.result.slot2 : resolved.result.slot1;
+    if(typeof oppSlot==='number' && oppSlot>=0) await showOpponentPickReveal(match,oppSlot);
+  }
+  if(match.status==='complete' || resolved.status==='match_complete' || roundNumber>=match.targetRounds || lives<=0){
+    await finishCompetitiveMatch(lives<=0);
+    return true;
+  }
+  if(match.firebasePlayerSlot==='player1'){
+    await wait(650);
+    await pushSharedRoundState(match,roundNumber+1);
+  }else{
+    await waitForSharedRound(match,roundNumber+1,'playing',8000);
+  }
+  await saveState();
+  await wait(450);
+  if(currentScreenId==='screen-game') startRound();
+  return true;
+}
+async function startFriendMatchOnline(){
+  ensureOnlineState();
+  const room=S.online.room;
+  if(!room || !room.firebase) return false;
+  const rival=(room.players||[]).find(p=>p.id!=='me');
+  if(!rival) return false;
+  const service=typeof createRoomMatch==='function' ? createRoomMatch : null;
+  if(!service) return false;
+  const result=await service(room.code,{
+    host:onlinePlayerPayload(),
+    guest:{userId:rival.userId||rival.id,authUid:rival.authUid||'',name:rival.name,avatar:rival.avatar,elo:rival.elo,cupSkin:rival.cupSkin||'red',ballSkin:rival.ballSkin||'orange',tableSkin:rival.tableSkin||'felt-classic',backgroundSkin:rival.backgroundSkin||'zone'},
+    rounds:room.rounds||5
+  });
+  if(!result || !result.data) return false;
+  S.online.activeMatch=null;
+  S.online.pendingMatch=firebaseMatchToLocal({matchId:result.id,match:result.data});
+  startMatchListener(result.id);
+  await saveState();
+  renderRace();
+  showScreen('screen-race');
+  return true;
 }
 async function startFriendMatchMock(){
   ensureOnlineState();
@@ -1219,7 +1624,7 @@ async function startFriendMatchMock(){
   }
   if(!(room.players||[]).some(p=>p.id==='rival')){
     room.players.push({id:'rival',name:mockOpponentName(room.code),avatar:mockOpponentAvatar(room.code),ready:true,host:false,elo:S.elo+20+rand(80)});
-    room.chat.push(systemChat('Mock rakip odaya eklendi.'));
+    room.chat.push(systemChat('Rakip odaya eklendi.'));
   }
   const rival=room.players.find(p=>p.id==='rival');
   S.online.activeMatch=makeCompetitiveMatch('friend',rival,{rounds:ROOM_ROUND_OPTIONS.includes(room.rounds)?room.rounds:5});
@@ -1233,7 +1638,7 @@ async function findMatchMock(){
   const status=$('matchmaking-status');
   const result=$('matchmaking-result');
   const start=$('btn-start-found-match');
-  if(status){ status.classList.add('searching'); status.textContent='Uygun rakip aranıyor... ELO '+Math.max(500,S.elo-120)+' - '+(S.elo+120); }
+  if(status){ status.classList.add('searching'); status.textContent='Eşleşme kuyruğuna giriliyor...'; }
   if(result) result.innerHTML='';
   if(start) start.style.display='none';
   return new Promise(res=>{
@@ -1246,6 +1651,12 @@ async function findMatchMock(){
     },3000);
   });
 }
+function openMatchedRaceScreen(){
+  ensureOnlineState();
+  if(!S.online.pendingMatch) return;
+  renderRace();
+  showScreen('screen-race');
+}
 async function findOnlineMatch(){
   ensureOnlineState();
   if(mockSearchTimer) clearTimeout(mockSearchTimer);
@@ -1254,27 +1665,28 @@ async function findOnlineMatch(){
   const status=$('matchmaking-status');
   const result=$('matchmaking-result');
   const start=$('btn-start-found-match');
-  if(status){ status.classList.add('searching'); status.textContent='Firebase kuyruğuna giriliyor... ELO '+Math.max(500,S.elo-150)+' - '+Math.min(2500,S.elo+150); }
+  if(status){ status.classList.add('searching'); status.textContent='Eşleşme kuyruğuna giriliyor...'; }
   if(result) result.innerHTML='';
   if(start) start.style.display='none';
   const serviceFind=typeof findMatch==='function' ? findMatch : findMatchMock;
   const response=await serviceFind(onlinePlayerPayload());
   if(response && response.source==='matchmaking'){
-    renderMatchmaking();
+    openMatchedRaceScreen();
     return response;
   }
   if(response && response.status==='matched' && response.match){
     S.online.pendingMatch=firebaseMatchToLocal(response);
+    startMatchListener(S.online.pendingMatch.firebaseMatchId);
     S.online.matchmakingQueue=null;
     await saveState();
-    renderMatchmaking();
+    openMatchedRaceScreen();
     return S.online.pendingMatch;
   }
   if(response && response.status==='queued'){
     S.online.matchmakingQueue={queueId:response.queueId||S.userId,elo:S.elo,joinedAt:Date.now()};
     await saveState();
-    if(status){ status.classList.remove('searching'); status.textContent='Kuyrukta bekleniyor'; }
-    if(result) result.innerHTML='Yakın ELO aralığında rakip bekleniyor.<br><b>ELO '+Math.max(500,S.elo-150)+' - '+Math.min(2500,S.elo+150)+'</b>';
+    if(status){ status.classList.remove('searching'); status.textContent='Rakip aranıyor...'; }
+    if(result) result.innerHTML='Sana yakın seviyede bir rakip bekleniyor.';
     return response;
   }
   renderMatchmaking();
@@ -1301,34 +1713,95 @@ async function startTournamentMock(type){
   refreshMenu();
   renderTournament();
 }
+let tournamentLobbyUnsubscribe=null;
+let tournamentLobbyTimer=null;
+function stopTournamentLobbyWatch(){
+  if(tournamentLobbyUnsubscribe){ try{ tournamentLobbyUnsubscribe(); }catch(e){} tournamentLobbyUnsubscribe=null; }
+  if(tournamentLobbyTimer){ clearTimeout(tournamentLobbyTimer); tournamentLobbyTimer=null; }
+}
+function finalizeTournamentBracket(){
+  const t=S.online.tournament;
+  if(!t || t.status!=='lobby') return;
+  stopTournamentLobbyWatch();
+  const real=(t.realParticipants&&t.realParticipants.length?t.realParticipants.slice():[onlineName()]);
+  const names=real.slice(0,8);
+  const shuffled=MOCK_RIVAL_NAMES.slice().sort(()=>Math.random()-.5);
+  let fi=0;
+  while(names.length<8){
+    const candidate=shuffled[fi++ % shuffled.length];
+    if(!names.includes(candidate)) names.push(candidate);
+  }
+  const myName=onlineName();
+  const meIdx=names.indexOf(myName);
+  if(meIdx<0) names[0]=myName; else if(meIdx!==0){ names.splice(meIdx,1); names.unshift(myName); }
+  t.participants=names;
+  t.route=[names[1],names[2],names[3]];
+  t.status='active';
+  t.roundIndex=0;
+  t.history=[];
+  saveState();
+  refreshMenu();
+  if(currentScreenId==='screen-tournament') renderTournament();
+}
+function resumeTournamentLobbyIfNeeded(){
+  const t=ensureOnlineState().tournament;
+  if(!t || t.status!=='lobby') return;
+  stopTournamentLobbyWatch();
+  if(t.firebaseTournamentId && typeof listenTournament==='function'){
+    listenTournament(t.firebaseTournamentId,doc=>{
+      const cur=S.online.tournament;
+      if(!doc || !cur || cur.firebaseTournamentId!==t.firebaseTournamentId || cur.status!=='lobby') return;
+      const names=(Array.isArray(doc.players)?doc.players:[]).map(p=>p.name||'Oyuncu');
+      cur.realParticipants=names;
+      if(currentScreenId==='screen-tournament') renderTournament();
+      if(names.length>=8) finalizeTournamentBracket();
+    }).then(unsub=>{ if(typeof unsub==='function') tournamentLobbyUnsubscribe=unsub; });
+    tournamentLobbyTimer=setTimeout(finalizeTournamentBracket,16000);
+  }else{
+    tournamentLobbyTimer=setTimeout(finalizeTournamentBracket,2600);
+  }
+}
 async function startTournamentOnline(type){
   ensureOnlineState();
   const cup=TOURNAMENT_TYPES[type];
   if(!cup) return;
+  if(S.online.tournament){ renderTournament(); return; }
   if(S.coins<cup.entry){ msgModal('🪙','Altın yetersiz','Bu kupaya katılmak için '+cup.entry+' altın gerekiyor.'); return; }
-  const service=typeof createTournament==='function' ? createTournament : null;
-  if(!service) return startTournamentMock(type);
-  const result=await service(type,{player:onlinePlayerPayload()});
-  if(!result || !result.id){
-    if(S.online.tournament) return;
-    return startTournamentMock(type);
-  }
+  stopTournamentLobbyWatch();
+  const service=typeof joinTournamentLobby==='function' ? joinTournamentLobby : null;
+  const result= service ? await service(type,onlinePlayerPayload()) : null;
   S.coins-=cup.entry;
-  const shuffled=MOCK_RIVAL_NAMES.slice().sort(()=>Math.random()-.5);
-  S.online.tournament={
-    type:cup.id,
-    firebaseTournamentId:result.id,
-    status:'active',
-    roundIndex:0,
-    participants:[onlineName(),...shuffled.slice(0,7)],
-    route:[shuffled[0],shuffled[1],shuffled[2]],
-    history:[],
-    startedAt:Date.now()
-  };
   S.online.activeMatch=null;
-  await saveState();
-  refreshMenu();
-  renderTournament();
+  if(result && result.id){
+    const players=Array.isArray(result.data&&result.data.players)?result.data.players:[];
+    S.online.tournament={
+      type:cup.id, firebaseTournamentId:result.id, status:'lobby',
+      realParticipants:players.map(p=>p.name||'Oyuncu'),
+      roundIndex:0, participants:[], route:[], history:[], startedAt:Date.now()
+    };
+    await saveState();
+    refreshMenu();
+    renderTournament();
+    const unsub=await listenTournament(result.id,doc=>{
+      const t=S.online.tournament;
+      if(!doc || !t || t.firebaseTournamentId!==result.id || t.status!=='lobby') return;
+      const names=(Array.isArray(doc.players)?doc.players:[]).map(p=>p.name||'Oyuncu');
+      t.realParticipants=names;
+      if(currentScreenId==='screen-tournament') renderTournament();
+      if(names.length>=8) finalizeTournamentBracket();
+    });
+    if(typeof unsub==='function') tournamentLobbyUnsubscribe=unsub;
+    tournamentLobbyTimer=setTimeout(finalizeTournamentBracket,16000);
+  }else{
+    S.online.tournament={
+      type:cup.id, status:'lobby', realParticipants:[onlineName()],
+      roundIndex:0, participants:[], route:[], history:[], startedAt:Date.now()
+    };
+    await saveState();
+    refreshMenu();
+    renderTournament();
+    tournamentLobbyTimer=setTimeout(finalizeTournamentBracket,2600);
+  }
 }
 async function submitLeaderboardMock(score){
   addWeeklyLeagueScore(Math.max(0,Math.round((Number(score)||0)/40)));
@@ -1373,9 +1846,9 @@ function simulateOpponentRound(match,playerCorrect){
   }
   if(!playerCorrect && Math.random()<.28) match.opponent.score+=12;
 }
-async function showOpponentPickReveal(match){
-  const slot=match && match.opponent ? match.opponent.lastPickSlot : null;
-  if(slot==null) return;
+async function showOpponentPickReveal(match,slotOverride){
+  const slot=slotOverride!=null ? slotOverride : (match && match.opponent ? match.opponent.lastPickSlot : null);
+  if(slot==null || slot<0) return;
   const cup=cups.find(c=>c.slot===slot);
   if(!cup) return;
   cup.el.dataset.oppAvatar=match.opponent.avatar||'🎱';
@@ -1385,9 +1858,11 @@ async function showOpponentPickReveal(match){
   delete cup.el.dataset.oppAvatar;
 }
 async function recordCompetitiveRound(playerCorrect){
+  if(currentScreenId!=='screen-game') return true;
   ensureOnlineState();
   const match=S.online.activeMatch;
   if(!match || !['friend','matchmaking','tournament'].includes(match.source) || match.status!=='in_progress') return false;
+  if(isSharedFirebaseMatch(match)) return await recordSharedFirebaseRound(match,playerCorrect);
   match.round++;
   match.player.name=onlineName();
   match.player.lives=Math.max(0,lives);
@@ -1409,6 +1884,7 @@ async function recordCompetitiveRound(playerCorrect){
   const finished=bestOf5Decided || match.round>=match.targetRounds || lives<=0;
   await saveState();
   await showOpponentPickReveal(match);
+  if(currentScreenId!=='screen-game') return true;
   if(finished){
     await finishCompetitiveMatch(lives<=0);
     return true;
@@ -1416,6 +1892,7 @@ async function recordCompetitiveRound(playerCorrect){
   return false;
 }
 async function finishCompetitiveMatch(forceLoss=false){
+  if(currentScreenId!=='screen-game') return;
   ensureOnlineState();
   const match=S.online.activeMatch;
   if(!match) return;
@@ -1451,6 +1928,7 @@ async function finishCompetitiveMatch(forceLoss=false){
   await submitLeaderboardMock(match.player.score);
   await saveState();
   refreshMenu();
+  if(currentScreenId!=='screen-game') return; // oyuncu sonuç hesaplanırken menüye döndüyse üstüne modal/ekran zorlanmaz
   renderRace();
   if(match.source==='tournament') renderTournament();
   showScreen(match.source==='tournament' ? 'screen-tournament' : 'screen-race');
@@ -1492,6 +1970,10 @@ async function beginCompetitiveGame(){
   match.status='in_progress';
   S.online.activeMatch=match;
   S.online.pendingMatch=null;
+  if(isSharedFirebaseMatch(match)){
+    startMatchListener(match.firebaseMatchId);
+    await ensureSharedRoundState(match);
+  }
   await saveState();
   refreshMenu();
   startCompetitiveGame(match.source);
@@ -1502,7 +1984,8 @@ function renderRoom(){
   const room=S.online.room; if(!room) return;
   const code=$('room-code-label'); if(code) code.textContent=room.code;
   const ready=$('btn-room-ready'); if(ready) ready.textContent=room.ready?'Hazırsın':'Hazır Ol';
-  const start=$('btn-room-start'); if(start) start.disabled=!room.ready;
+  const canStart=room.firebase ? ((room.players||[]).length>=2 && (room.players||[]).every(p=>p.ready)) : room.ready;
+  const start=$('btn-room-start'); if(start) start.disabled=!canStart;
   const isHost=(room.players||[]).some(p=>p.id==='me'&&p.host);
   const roundSelect=$('room-round-select');
   if(roundSelect){
@@ -1535,8 +2018,16 @@ function renderGameChat(){
   const rival=chatRivalInfo();
   const meAvatar=$('game-avatar-me');
   const rivalAvatar=$('game-avatar-rival');
+  const meName=$('game-name-me');
+  const rivalName=$('game-name-rival');
+  const meScore=$('game-score-me');
+  const rivalScore=$('game-score-rival');
   if(meAvatar) meAvatar.textContent=(match&&match.player&&match.player.avatar)||onlineAvatar();
   if(rivalAvatar) rivalAvatar.textContent=(rival&&rival.avatar)||(match&&match.opponent&&match.opponent.avatar)||'🎱';
+  if(meName) meName.textContent=(match&&match.player&&match.player.name)||onlineName();
+  if(rivalName) rivalName.textContent=(match&&match.opponent&&match.opponent.name)||(rival&&rival.name)||'Rakip';
+  if(meScore) meScore.textContent=String((match&&match.player&&Number(match.player.score))||0);
+  if(rivalScore) rivalScore.textContent=String((match&&match.opponent&&Number(match.opponent.score))||0);
 }
 function renderAllChatViews(){ renderRoomChat(); renderRaceChat(); renderGameChat(); }
 function syncGameChat(){
@@ -1598,23 +2089,26 @@ function renderMatchmaking(){
   const start=$('btn-start-found-match');
   const pending=S.online.pendingMatch;
   const queued=S.online.matchmakingQueue;
-  if(status){ status.classList.remove('searching'); status.textContent=pending?'Rakip bulundu':queued?'Kuyrukta bekleniyor':'Hazır'; }
+  if(status){ status.classList.remove('searching'); status.textContent=pending?'Rakip bulundu':queued?'Rakip aranıyor...':'Hazır'; }
   if(result){
     result.innerHTML=pending
-      ? 'Rakip: <b>'+(pending.opponent.avatar||'🎱')+' '+escapeHtml(pending.opponent.name)+'</b><br>ELO: <b>'+pending.opponent.elo+'</b><br>Giriş: <b>'+pending.entryFee+' 🪙</b> • Ödül: <b>'+pending.prize+' 🪙</b>'
-      : queued ? 'Firebase kuyruğundasın.<br>Yakın aralık: <b>ELO '+Math.max(500,S.elo-150)+' - '+Math.min(2500,S.elo+150)+'</b>' : '';
+      ? ''
+      : queued ? 'Sana yakın seviyede bir rakip bekleniyor.' : '';
   }
-  if(start) start.style.display=pending?'inline-block':'none';
+  if(start) start.style.display='none';
 }
 function renderTournament(){
   ensureOnlineState();
+  const t=S.online.tournament;
   const list=$('tournament-list');
   if(list){
-    list.innerHTML=Object.values(TOURNAMENT_TYPES).map(c=>
-      '<div class="tournament-card"><h3>'+c.badge+' '+c.name+'</h3><p>Giriş: '+c.entry+' 🪙<br>Ödül: '+c.prize+' 🪙</p><button class="btn small" data-tournament="'+c.id+'">Katıl</button></div>'
-    ).join('');
+    list.style.display=t?'none':'';
+    if(!t){
+      list.innerHTML=Object.values(TOURNAMENT_TYPES).map(c=>
+        '<div class="tournament-card"><h3>'+c.badge+' '+c.name+'</h3><p>Giriş: '+c.entry+' 🪙<br>Ödül: '+c.prize+' 🪙</p><button class="btn small" data-tournament="'+c.id+'">Katıl</button></div>'
+      ).join('');
+    }
   }
-  const t=S.online.tournament;
   const bracket=$('tournament-bracket');
   const play=$('btn-tournament-play');
   if(!bracket) return;
@@ -1624,6 +2118,20 @@ function renderTournament(){
     return;
   }
   const cup=TOURNAMENT_TYPES[t.type]||TOURNAMENT_TYPES.mini;
+  if(t.status==='lobby'){
+    const names=(t.realParticipants&&t.realParticipants.length?t.realParticipants:[onlineName()]);
+    bracket.innerHTML='\
+      <div class="bracket-title">'+cup.badge+' '+cup.name+' • Lobi</div>\
+      <div class="tournament-lobby-info">\
+        <div class="pill">Giriş: <b>'+cup.entry+' 🪙</b></div>\
+        <div class="pill">Ödül: <b>'+cup.prize+' 🪙</b></div>\
+        <div class="pill">Bekleyen: <b>'+names.length+'/8</b></div>\
+      </div>\
+      <div class="tournament-lobby-note">Rakipler toplanıyor, 8 kişi tamamlanınca turnuva başlar…</div>\
+      <div class="bracket-grid">'+names.map(name=>'<div class="bracket-person '+(name===onlineName()?'me':'')+'">'+escapeHtml(name)+'</div>').join('')+'</div>';
+    if(play) play.style.display='none';
+    return;
+  }
   const roundNames=['Çeyrek Final','Yarı Final','Final'];
   bracket.innerHTML='\
     <div class="bracket-title">'+cup.badge+' '+cup.name+' • '+(t.status==='active'?roundNames[t.roundIndex]:t.status==='won'?'Şampiyon':'Elendi')+'</div>\
@@ -1762,6 +2270,7 @@ async function startGameAt(lv){
   mode='classic'; level=Math.max(1,Math.min(Number(lv)||1,MAX_CLASSIC_LEVEL)); lives=MAX_LIVES; streak=0; adUsedThisRun=false; failuresSinceAd=0;
   playSessionStartedAt=Date.now(); consecutiveLifeLosses=0; longPlayRestTriggeredThisRun=false;
   resetRunPerkState();
+  beginGameFlow();
   showScreen('screen-game');
   requestGameFullscreen();
   await saveRunState();
@@ -1853,7 +2362,7 @@ function ballStyleForLevel(selectedSkin,lv){
   return group.css;
 }
 function snapCupToSlot(cup){
-  if(!cup || cup.slot==null || !slotPositions[cup.slot]) return;
+  if(!cup || cup.slot==null || slotPositions[cup.slot]===undefined) return;
   cup.x=slotPositions[cup.slot];
   setCupPos(cup,0,1);
   cup.el.style.zIndex=1+cup.slot;
@@ -1881,7 +2390,8 @@ function buildCups(count){
   const startX=(W-totalW)/2;
   slotPositions=[];
   for(let s=0;s<count;s++) slotPositions.push(startX+s*(cw+gap));
-  const skin=CUP_SKINS.find(s=>s.id===S.cupSkin)||CUP_SKINS[0];
+  const visualSkin=sharedRoundVisuals || {};
+  const skin=skinById(CUP_SKINS,visualSkin.cupSkin,selectedCupSkin());
   for(let i=0;i<count;i++){
     const el=document.createElement('div');
     el.className='cup cup-zone-'+(set.zone||levelThemeFor(level).id);
@@ -1895,7 +2405,7 @@ function buildCups(count){
     cups.push(cup);
   }
   const ball=$('ball');
-  const bs=BALL_SKINS.find(s=>s.id===S.ballSkin)||BALL_SKINS[0];
+  const bs=skinById(BALL_SKINS,visualSkin.ballSkin,selectedBallSkin());
   ball.style.background=ballStyleForLevel(bs,level);
 }
 function setCupPos(cup,y,scale=1){
@@ -2054,6 +2564,8 @@ function startChoiceTimer(total=choiceTimeFor(level)){
   choiceTimerRaf=requestAnimationFrame(tick);
 }
 async function handleTimeout(){
+  const flow=gameFlowToken;
+  if(!isGameFlowActive(flow)) return;
   if(!guessing||busy)return;
   guessing=false;busy=true;stopChoiceTimer();setHelperButtons(false);clearFx();
   const shieldedCombo=useComboShieldIfReady();
@@ -2063,11 +2575,15 @@ async function handleTimeout(){
   await trackDailyStat('timeouts',1);
   $('status-msg').textContent='⏰ Süre bitti!'+(shieldedCombo?' 🛡️ Kombo korundu!':'');
   await wait(450);
+  if(!isGameFlowActive(flow)) return;
   placeBallAt(ballCup);
   await liftCup(ballCup,true);
+  if(!isGameFlowActive(flow)) return;
   lives--; consecutiveLifeLosses++; updateHUD();
   await saveRunState();
   await wait(1050);
+  if(!isGameFlowActive(flow)) return;
+  lastSelectionSlot=-1;
   if(await recordCompetitiveRound(false)) return;
   if(lives<=0){ gameOver(); }
   else{ await liftCup(ballCup,false); hideBall(); startRound(); }
@@ -2115,6 +2631,8 @@ function waitForVarrOpportunity(timeoutMs=4200){
   });
 }
 async function playVarrReview(record){
+  const flow=gameFlowToken;
+  if(!isGameFlowActive(flow)) return;
   if(!record || !Array.isArray(record.swaps)) return;
   varrReviewing=true;
   hideVarrButton();
@@ -2136,19 +2654,26 @@ async function playVarrReview(record){
   ball.classList.add('var-review-ball');
   placeBallAt(ballCup);
   await wait(220);
+  if(!isGameFlowActive(flow)) return;
   await liftCup(ballCup,true,380);
+  if(!isGameFlowActive(flow)) return;
   $('status-msg').textContent='👀 VAR: Top başlangıçta bu bardağın içindeydi';
   await wait(380);
+  if(!isGameFlowActive(flow)) return;
   await liftCup(ballCup,false,380);
   placeBallAt(ballCup);
   await wait(160);
+  if(!isGameFlowActive(flow)) return;
 
   const durBase=Math.max(340, (levelSettings(level).dur || 220) * 1.8);
   for(const ev of record.swaps){
+    if(!isGameFlowActive(flow)) return;
     if(!ev || !cups[ev.i] || !cups[ev.j]) continue;
     await swapCups(cups[ev.i],cups[ev.j],durBase,!!ev.feint);
+    if(!isGameFlowActive(flow)) return;
     syncReviewBall();
     await wait(30);
+    if(!isGameFlowActive(flow)) return;
   }
   snapCupsToSlots();
   syncReviewBall();
@@ -2161,6 +2686,7 @@ async function playVarrReview(record){
   }
   $('status-msg').textContent='✅ VAR: Top burada, hatalı seçimin kırmızı ışıkla gösterildi';
   await wait(1200);
+  if(!isGameFlowActive(flow)) return;
   if(ballCup){ ballCup.el.classList.remove('var-correct-pick'); }
   if(selectedCup){ selectedCup.el.classList.remove('var-wrong-pick'); }
   $('screen-game').classList.remove('varr-reviewing');
@@ -2173,56 +2699,81 @@ async function playVarrReview(record){
 
 /* ---------- Tur akışı ---------- */
 async function startRound(){
+  const flow=gameFlowToken;
+  if(!isGameFlowActive(flow)) return;
   isPaused=false;
   stopChoiceTimer(); resetTimerBar();
   startMusic();
   hideVarrButton();
   busy=true; guessing=false; hintUsedThisRound=false; eliminateUsedThisRound=false; varrUsedThisRound=false;
   activeRoundPerks=activeSkinPerks(level);
+  const activeMatch=ensureOnlineState().activeMatch;
+  const sharedState=isSharedFirebaseMatch(activeMatch) ? await ensureSharedRoundState(activeMatch) : null;
+  if(sharedState){
+    level=Math.max(1,Math.min(MAX_CLASSIC_LEVEL,Number(sharedState.level)||level));
+    activeRoundPerks=emptySkinPerks();
+  }else{
+    sharedRoundVisuals=null;
+  }
   updateHUD();
   await saveRunState();
+  if(!isGameFlowActive(flow)) return;
   const set=levelSettings(level);
-  buildCups(set.cupCount);
-  ballCup=cups[rand(cups.length)];
-  currentRoundRecord={level,mode,cupCount:set.cupCount,ballIndex:cups.indexOf(ballCup),swaps:[]};
+  const cupCount=sharedState ? Math.max(3,Math.min(5,Number(sharedState.cups)||set.cupCount)) : set.cupCount;
+  const roundRandom=sharedState ? seededRandom(sharedState.seed) : Math.random;
+  const randRound=n=>Math.floor(roundRandom()*Math.max(1,n));
+  buildCups(cupCount);
+  const sharedBallIndex=sharedState ? Math.max(0,Math.min(cups.length-1,Number(sharedState.ballIndex)||0)) : -1;
+  ballCup=sharedState ? cups[sharedBallIndex] : cups[rand(cups.length)];
+  currentRoundRecord={level,mode,cupCount,ballIndex:cups.indexOf(ballCup),seed:sharedState?sharedState.seed:'',swaps:[]};
   $('status-msg').textContent='👀 Topu izle!';
   setHelperButtons(false);
 
   await wait(500);
+  if(!isGameFlowActive(flow)) return;
   placeBallAt(ballCup);
   await liftCup(ballCup,true);
+  if(!isGameFlowActive(flow)) return;
   if(activeRoundPerks.xrayMs){ $('ball').classList.add('xray-ball'); }
   await wait(650 + activeRoundPerks.xrayMs);
+  if(!isGameFlowActive(flow)) return;
   $('ball').classList.remove('xray-ball');
   await liftCup(ballCup,false);
+  if(!isGameFlowActive(flow)) return;
   hideBall();
   hideBallDuringShuffle();
   await wait(320);
+  if(!isGameFlowActive(flow)) return;
 
   $('status-msg').textContent= level>=45 ? '🔥 Final bölgesi… çok dikkat!' : '🔀 Dikkat, karışıyor…';
   for(let k=0;k<set.swaps;k++){
-    let i=rand(cups.length), j=rand(cups.length);
-    while(j===i) j=rand(cups.length);
-    const feint = set.feints && Math.random() < (set.feintChance || .16);
-    if(set.invis && Math.random()<(set.ghostChance || 0)){
+    if(!isGameFlowActive(flow)) return;
+    let i=randRound(cups.length), j=randRound(cups.length);
+    while(j===i) j=randRound(cups.length);
+    const feint = set.feints && roundRandom() < (set.feintChance || .16);
+    if(set.invis && roundRandom()<(set.ghostChance || 0)){
       cups[i].el.classList.add('ghost');cups[j].el.classList.add('ghost');
     }
-    if(set.colors && Math.random()<(set.colorChance || .22)){ randomHue(cups[rand(cups.length)]); }
+    if(!sharedState && set.colors && Math.random()<(set.colorChance || .22)){ randomHue(cups[rand(cups.length)]); }
     if(currentRoundRecord){ currentRoundRecord.swaps.push({i,j,feint:!!feint}); }
     const moveDur=set.dur * (k<2 ? activeRoundPerks.slowStartFactor : 1);
     await swapCups(cups[i],cups[j],moveDur,feint);
+    if(!isGameFlowActive(flow)) return;
     cups[i].el.classList.remove('ghost');cups[j].el.classList.remove('ghost');
 
     // V20: sahte hareketler artık aynı anda kaos yaratmıyor;
     // yavaş ve kontrollü şekilde araya giriyor.
-    if(level>=8 && k%3===1 && Math.random() < (set.bobChance || 0)){
+    if(!sharedState && level>=8 && k%3===1 && Math.random() < (set.bobChance || 0)){
       const decoys=cups.filter((_,idx)=>idx!==i && idx!==j);
       if(decoys.length) await bobCup(decoys[rand(decoys.length)], Math.max(150,set.dur*0.55));
+      if(!isGameFlowActive(flow)) return;
     }
     await wait(shufflePauseFor(level));
+    if(!isGameFlowActive(flow)) return;
     snapCupsToSlots();
     hideBallDuringShuffle();
   }
+  if(!isGameFlowActive(flow)) return;
   cups.forEach(c=>c.el.style.filter='');
   snapCupsToSlots();
 
@@ -2236,16 +2787,20 @@ async function startRound(){
 }
 
 async function onCupTap(cup){
+  const flow=gameFlowToken;
+  if(!isGameFlowActive(flow)) return;
   if(!guessing||busy||cup.el.classList.contains('eliminated'))return;
   guessing=false;busy=true;
   stopChoiceTimer();
   setHelperButtons(false);
   clearFx();
   haptic(22);
+  lastSelectionSlot=cup.slot;
 
   if(cup===ballCup){
     placeBallAt(cup);
     await liftCup(cup,true);
+    if(!isGameFlowActive(flow)) return;
     const comebackWin = consecutiveLifeLosses>=2;
     consecutiveLifeLosses=0;
     streak++;
@@ -2271,7 +2826,7 @@ async function onCupTap(cup){
       baseReward=ELIMINATE_REWARD;
       helperRewardText=' • 🎯 elemeli ödül';
     }
-    const skinPerks=activeSkinPerks(level);
+    const skinPerks=isSharedFirebaseMatch(ensureOnlineState().activeMatch) ? emptySkinPerks() : activeSkinPerks(level);
     const skinCoinBonus=skinPerks.coinBoost||0;
     const comboBonus=comboBonusFor(streak);
     const reward=baseReward+comboBonus+lifeCoinBonus+skinCoinBonus;
@@ -2282,6 +2837,7 @@ async function onCupTap(cup){
     const cleanWin = !hintUsedThisRound && !eliminateUsedThisRound && !varrUsedThisRound;
     await recordDailyWin(cleanWin,{noHintWin:!hintUsedThisRound,noVarWin:!varrUsedThisRound,comebackWin,sportBallWin:isSportBallActive()});
     await saveState();
+    if(!isGameFlowActive(flow)) return;
     sndWin();sndCoin(); if(streak>=3) sndCombo(); confetti();
     const r=cup.el.getBoundingClientRect();
     floatCoin('+'+reward+' 🪙', r.left+r.width/2-30, r.top-10);
@@ -2291,6 +2847,7 @@ async function onCupTap(cup){
     setTimeout(()=>$('combo-label').parentElement.classList.remove('combo-burst'),300);
     updateHUD();
     await wait(1300);
+    if(!isGameFlowActive(flow)) return;
     if(await recordCompetitiveRound(true)) return;
     const clearedLevel = level;
     if(mode==='classic' && clearedLevel >= MAX_CLASSIC_LEVEL){
@@ -2299,9 +2856,11 @@ async function onCupTap(cup){
     }
     level++;
     await saveRunState();
+    if(!isGameFlowActive(flow)) return;
     startRound();
   }else{
     await liftCup(cup,true);          // boş bardak
+    if(!isGameFlowActive(flow)) return;
     sndLose();
     await trackDailyStat('failures',1);
     const near = Math.abs((cup.slot||0)-(ballCup.slot||0))===1;
@@ -2309,8 +2868,10 @@ async function onCupTap(cup){
     $('screen-game').classList.add('screen-shake');
     setTimeout(()=>$('screen-game').classList.remove('screen-shake'),320);
     await wait(500);
+    if(!isGameFlowActive(flow)) return;
     placeBallAt(ballCup);
     await liftCup(ballCup,true);      // doğrusunu göster
+    if(!isGameFlowActive(flow)) return;
     const shieldedCombo=useComboShieldIfReady();
     if(!shieldedCombo) streak=0;
     lives--;
@@ -2324,8 +2885,11 @@ async function onCupTap(cup){
     updateHUD();
     await saveRunState();
     await wait(900);
+    if(!isGameFlowActive(flow)) return;
     const wantsVarr=await waitForVarrOpportunity(4200);
+    if(!isGameFlowActive(flow)) return;
     if(wantsVarr){ await playVarrReview(lastRoundRecord); }
+    if(!isGameFlowActive(flow)) return;
     if(await recordCompetitiveRound(false)) return;
     if(lives<=0){ gameOver(); }
     else{
@@ -2341,6 +2905,7 @@ async function onCupTap(cup){
   }
 }
 async function completeCampaign(){
+  if(currentScreenId!=='screen-game') return;
   busy=false; guessing=false; stopChoiceTimer(); setHelperButtons(false); await clearRunState();
   stopMusic(true);
   document.body.classList.add('final-victory');
@@ -2355,6 +2920,7 @@ async function completeCampaign(){
 }
 
 function gameOver(){
+  if(currentScreenId!=='screen-game') return;
   if(isCompetitiveMode() && S.online && S.online.activeMatch){
     finishCompetitiveMatch(true);
     return;
@@ -2370,7 +2936,9 @@ function gameOver(){
 async function startGame(m){
   isPaused=false; stopAllGameAudio({immediateMusic:true});
   ensureOnlineState();
+  sharedRoundVisuals=null;
   if(m==='classic' || m==='endless'){
+    stopMatchListener();
     S.online.activeMatch=null;
     S.online.pendingMatch=null;
     await saveState();
@@ -2378,6 +2946,7 @@ async function startGame(m){
   mode=m; level=1; lives=MAX_LIVES; streak=0; adUsedThisRun=false; failuresSinceAd=0;
   playSessionStartedAt=Date.now(); consecutiveLifeLosses=0; longPlayRestTriggeredThisRun=false;
   resetRunPerkState();
+  beginGameFlow();
   showScreen('screen-game');
   requestGameFullscreen();
   await saveRunState();
@@ -2385,10 +2954,12 @@ async function startGame(m){
 }
 async function startCompetitiveGame(source){
   isPaused=false; stopAllGameAudio({immediateMusic:true});
+  if(!isSharedFirebaseMatch(ensureOnlineState().activeMatch)) sharedRoundVisuals=null;
   mode=source;
   level=1; lives=MAX_LIVES; streak=0; adUsedThisRun=false; failuresSinceAd=0;
   playSessionStartedAt=Date.now(); consecutiveLifeLosses=0; longPlayRestTriggeredThisRun=false;
   resetRunPerkState();
+  beginGameFlow();
   showScreen('screen-game');
   requestGameFullscreen();
   startRound();
@@ -2466,6 +3037,7 @@ $('btn-ad-revive').addEventListener('click',async ()=>{
   updateHUD();
   await saveRunState();
   msgModal('❤️','Can kazandın!','+1 can ile devam ediyorsun. Bol şans!');
+  beginGameFlow();
   startRound();
 });
 
@@ -2490,7 +3062,57 @@ const SHOP_DEFS={
   background:{list:BACKGROUND_SKINS, ownedKey:'ownedBackgrounds', selectedKey:'backgroundSkin', desc:'Oyun arka planını değiştirir'},
   music:{list:MUSIC_SKINS, ownedKey:'ownedMusic', selectedKey:'musicSkin', desc:'Oyun müziğinin havasını değiştirir'}
 };
+const VISIBILITY_WARNING_TEXT='Bu kombinasyonda top/zemin renkleri birbirine yakın olabilir, görüş zorlaşabilir.';
+const VISIBILITY_RISK_MAP={
+  orange:{table:['wood-table','gold-stage-table'],background:['gold-stage-bg']},
+  basketball:{table:['wood-table','gold-stage-table'],background:['gold-stage-bg']},
+  handball:{table:['wood-table','gold-stage-table'],background:['gold-stage-bg']},
+  rugby:{table:['wood-table'],background:['gold-stage-bg']},
+  fire:{table:['wood-table','gold-stage-table'],background:['gold-stage-bg']},
+  meteor:{table:['wood-table'],background:['gold-stage-bg']},
+  crown:{table:['gold-stage-table'],background:['gold-stage-bg']},
+  tennis:{table:['felt-classic'],background:['arena-bg']},
+  emerald:{table:['felt-classic'],background:['arena-bg']},
+  soccer:{table:['marble-table'],background:[]},
+  golf:{table:['marble-table'],background:[]},
+  baseball:{table:['marble-table'],background:[]},
+  volley:{table:['marble-table'],background:[]},
+  iceball:{table:['marble-table','neon-table'],background:['night-bg','neon-city-bg']},
+  billiard8:{table:['neon-table','galaxy-table'],background:['night-bg','galaxy-bg','neon-city-bg']},
+  bowling:{table:['galaxy-table'],background:['galaxy-bg']}
+};
+let visibilityWarningTimer=null;
 function shopDef(tab=shopTab){ return SHOP_DEFS[tab]||SHOP_DEFS.cup; }
+function currentVisibilityRisk(){
+  const risk=VISIBILITY_RISK_MAP[S.ballSkin];
+  if(!risk) return null;
+  const tableClose=(risk.table||[]).includes(S.tableSkin);
+  const backgroundClose=(risk.background||[]).includes(S.backgroundSkin);
+  if(!tableClose && !backgroundClose) return null;
+  return {ball:S.ballSkin,table:S.tableSkin,background:S.backgroundSkin,tableClose,backgroundClose};
+}
+function showVisibilityWarningToast(){
+  if(!currentVisibilityRisk()) return;
+  let el=$('visibility-warning-toast');
+  if(!el){
+    el=document.createElement('div');
+    el.id='visibility-warning-toast';
+    el.className='visibility-warning-toast';
+    el.innerHTML='<span class="visibility-warning-icon">👁️</span><span class="visibility-warning-text"></span>';
+    document.body.appendChild(el);
+  }
+  const textEl=el.querySelector('.visibility-warning-text');
+  if(textEl) textEl.textContent=VISIBILITY_WARNING_TEXT;
+  el.classList.toggle('game',currentScreenId==='screen-game');
+  el.classList.remove('show');
+  void el.offsetWidth;
+  el.classList.add('show');
+  if(visibilityWarningTimer) clearTimeout(visibilityWarningTimer);
+  visibilityWarningTimer=setTimeout(()=>el.classList.remove('show'),3800);
+}
+function warnIfRiskyMarketSelection(tab){
+  if(tab==='ball' || tab==='table' || tab==='background') showVisibilityWarningToast();
+}
 function shopPreviewFor(tab,sk){
   if(tab==='cup') return '<div class="skin-preview-frame"><div class="skin-preview-cup" style="background:'+sk.css+'"></div></div>';
   if(tab==='ball'){
@@ -2579,6 +3201,7 @@ async function applyShopAction(id,act){
   if(currentScreenId==='screen-game') applyGameCosmetics();
   if(shopTab==='music') updateAudioButtons();
   refreshMenu();renderShop();
+  warnIfRiskyMarketSelection(shopTab);
 }
 $('shop-grid').addEventListener('click',async e=>{
   const b=e.target.closest('button[data-act]');
@@ -2627,6 +3250,11 @@ function refreshMenu(){
   $('best-combo').textContent=(S.bestCombo||0)||'–';
   if($('campaign-progress')) $('campaign-progress').textContent=(Math.min(S.bestLevel||0,MAX_CLASSIC_LEVEL))+'/'+MAX_CLASSIC_LEVEL;
 }
+function returnToMainMenu(){
+  refreshMenu();
+  showScreen('screen-menu');
+}
+document.querySelectorAll('[data-menu-back]').forEach(btn=>btn.addEventListener('click',returnToMainMenu));
 $('btn-pause').addEventListener('click',pauseGame);
 $('btn-pause-resume').addEventListener('click',resumePausedGame);
 $('btn-pause-menu').addEventListener('click',async ()=>{modal('modal-pause',false);isPaused=false;busy=false;guessing=false;stopChoiceTimer();stopAllGameAudio({immediateMusic:true});await clearRunState();refreshMenu();showScreen('screen-menu');});
@@ -2683,9 +3311,16 @@ $('btn-room-ready').addEventListener('click',async ()=>{
     await setRoomReady(S.online.room.code,Object.assign({},onlinePlayerPayload(),{ready:S.online.room.ready}),S.online.room.ready);
   }
 });
-$('btn-room-start').addEventListener('click',()=>{
+$('btn-room-start').addEventListener('click',async ()=>{
   ensureOnlineState();
-  if(!S.online.room || !S.online.room.ready){ msgModal('⏳','Hazır değilsin','Maçı başlatmadan önce hazır olmalısın.'); return; }
+  const room=S.online.room;
+  if(!room || !room.ready){ msgModal('⏳','Hazır değilsin','Maçı başlatmadan önce hazır olmalısın.'); return; }
+  if(room.firebase){
+    const players=room.players||[];
+    if(players.length<2 || !players.every(p=>p.ready)){ msgModal('⏳','Rakip bekleniyor','Maçı başlatmak için arkadaşının odaya katılıp hazır olması gerekiyor.'); return; }
+    const started=await startFriendMatchOnline();
+    if(started) return;
+  }
   startFriendMatchMock();
 });
 $('btn-chat-send').addEventListener('click',async ()=>{
@@ -2717,16 +3352,11 @@ $('btn-matchmaking').addEventListener('click',async ()=>{
   stopAllGameAudio({immediateMusic:true});
   renderMatchmaking();
   showScreen('screen-matchmaking');
-  if(!S.online || !S.online.pendingMatch){
-    const btn=$('btn-find-match');
-    if(btn) btn.disabled=true;
-    await findOnlineMatch();
-    if(btn) btn.disabled=false;
-  }
 });
 $('btn-matchmaking-back').addEventListener('click',()=>{if(mockSearchTimer) clearTimeout(mockSearchTimer);refreshMenu();showScreen('screen-menu');});
 $('btn-find-match').addEventListener('click',async e=>{const btn=e.currentTarget;btn.disabled=true;await findOnlineMatch();btn.disabled=false;});
-$('btn-start-found-match').addEventListener('click',()=>beginCompetitiveGame());
+const startFoundMatchBtn=$('btn-start-found-match');
+if(startFoundMatchBtn) startFoundMatchBtn.addEventListener('click',()=>beginCompetitiveGame());
 $('btn-tournament').addEventListener('click',()=>{stopAllGameAudio({immediateMusic:true});renderTournament();showScreen('screen-tournament');});
 $('btn-tournament-back').addEventListener('click',()=>{refreshMenu();showScreen('screen-menu');});
 $('tournament-list').addEventListener('click',e=>{ const b=e.target.closest('button[data-tournament]'); if(b) startTournamentOnline(b.dataset.tournament); });
@@ -2751,6 +3381,7 @@ $('btn-resume-run').addEventListener('click',async ()=>{
   playSessionStartedAt=Number(run.playSessionStartedAt)||Date.now();
   consecutiveLifeLosses=Math.max(0,Number(run.consecutiveLifeLosses)||0);
   longPlayRestTriggeredThisRun=!!run.longPlayRestTriggeredThisRun;
+  beginGameFlow();
   showScreen('screen-game');
   requestGameFullscreen();
   await saveRunState();
@@ -2818,8 +3449,10 @@ function primeAudioOnFirstGesture(){
 function primeFirebaseOnAppStart(){
   try{
     const svc=window.TopBulmacaFirebaseService;
-    if(svc && svc.hasRealConfig && svc.hasRealConfig() && svc.initFirebase){
-      svc.initFirebase().catch(()=>{});
+    if(svc && svc.initFirebase){
+      svc.initFirebase().catch(err=>{
+        try{ console.warn('[TopBulmacaFirebase] Startup init promise rejected; local fallback remains active.', err); }catch(e){}
+      });
     }
   }catch(e){}
 }
@@ -2830,6 +3463,7 @@ function primeFirebaseOnAppStart(){
   primeFirebaseOnAppStart();
   ensureDailyStats();
   ensureWeeklyLeague();
+  resumeTournamentLobbyIfNeeded();
   applyLevelTheme(1);
   preloadFailSounds();
   updateAudioButtons();
